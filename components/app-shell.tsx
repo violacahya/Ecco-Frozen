@@ -1,0 +1,191 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import { useApp } from "@/lib/app-context";
+import { ROLE_LABEL } from "@/lib/types";
+import { avatarColor, cn, initials } from "@/lib/utils";
+import {
+  CloseIcon,
+  DashboardIcon,
+  LogoutIcon,
+  MenuIcon,
+  SnowflakeIcon,
+  UserPlusIcon,
+  UsersIcon,
+} from "./icons";
+
+const NAV = [
+  { href: "/", label: "Dashboard", icon: DashboardIcon },
+  { href: "/customers", label: "Pelanggan", icon: UsersIcon },
+  { href: "/users", label: "Pengguna", icon: UserPlusIcon, adminOnly: true },
+];
+
+export function AppShell({
+  title,
+  subtitle,
+  actions,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  const { ready, currentUser, isAdmin, logout } = useApp();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (ready && !currentUser) router.replace("/login");
+  }, [ready, currentUser, router]);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  if (!ready || !currentUser) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-logo">
+          <SnowflakeIcon size={28} />
+        </div>
+        <p>Memuat Ecco CRM…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Tutup menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside className={cn("sidebar", sidebarOpen && "sidebar-open")}>
+        <div className="sidebar-brand">
+          <span className="brand-mark">
+            <SnowflakeIcon size={22} />
+          </span>
+          <span className="brand-text">
+            <strong>Ecco CRM</strong>
+            <small>Frozen Food Division</small>
+          </span>
+          <button
+            type="button"
+            className="sidebar-close"
+            aria-label="Tutup menu"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Navigasi utama">
+          <p className="sidebar-label">Menu Utama</p>
+          {NAV.filter((item) => !item.adminOnly || isAdmin).map((item) => {
+            const active = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn("nav-link", active && "nav-link-active")}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={19} />
+                <span>{item.label}</span>
+                {active && <span className="nav-dot" aria-hidden="true" />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-spacer" />
+
+        <div className="sidebar-card">
+          <span className="sidebar-card-icon">
+            <SnowflakeIcon size={18} />
+          </span>
+          <p className="sidebar-card-title">Mode Demo</p>
+          <p className="sidebar-card-text">
+            Data tersimpan otomatis di penyimpanan browser perangkat ini.
+          </p>
+        </div>
+
+        <div className="sidebar-user">
+          <span
+            className="avatar avatar-md"
+            style={{ background: avatarColor(currentUser.id) }}
+            aria-hidden="true"
+          >
+            {initials(currentUser.name)}
+          </span>
+          <span className="sidebar-user-meta">
+            <strong>{currentUser.name}</strong>
+            <small>{ROLE_LABEL[currentUser.role]}</small>
+          </span>
+          <button
+            type="button"
+            className="icon-button icon-button-dark"
+            title="Keluar"
+            aria-label="Keluar"
+            onClick={logout}
+          >
+            <LogoutIcon size={18} />
+          </button>
+        </div>
+      </aside>
+
+      <div className="main-area">
+        <header className="topbar">
+          <button
+            type="button"
+            className="icon-button menu-button"
+            aria-label="Buka menu"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <MenuIcon size={20} />
+          </button>
+          <div className="topbar-context">
+            <span className="topbar-eyebrow">Ecco CRM</span>
+            <span className="topbar-title">{title}</span>
+          </div>
+          <div className="topbar-right">
+            <span className="topbar-date">
+              {new Date().toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <span
+              className="avatar avatar-sm topbar-avatar"
+              style={{ background: avatarColor(currentUser.id) }}
+              title={currentUser.name}
+            >
+              {initials(currentUser.name)}
+            </span>
+          </div>
+        </header>
+
+        <main className="page">
+          <div className="page-head">
+            <div>
+              <h1 className="page-title">{title}</h1>
+              {subtitle && <p className="page-subtitle">{subtitle}</p>}
+            </div>
+            {actions && <div className="page-actions">{actions}</div>}
+          </div>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
