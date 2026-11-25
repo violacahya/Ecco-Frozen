@@ -1,4 +1,4 @@
-import type { Customer, User } from "./types";
+import type { Customer, Order, User } from "./types";
 
 const now = new Date();
 
@@ -35,6 +35,26 @@ export const SEED_USERS: User[] = [
     role: "staff",
     title: "Account Executive",
     createdAt: daysAgo(60),
+  },
+  {
+    id: "usr_customer_dewi",
+    name: "Dewi Lestari",
+    email: "pelanggan@eccofrozen.id",
+    password: "pelanggan123",
+    role: "customer",
+    title: "Mitra Distributor",
+    customerId: "cst_001",
+    createdAt: daysAgo(172),
+  },
+  {
+    id: "usr_customer_andi",
+    name: "Andi Wijaya",
+    email: "mitra@eccofrozen.id",
+    password: "mitra123",
+    role: "customer",
+    title: "Mitra HoReCa",
+    customerId: "cst_002",
+    createdAt: daysAgo(150),
   },
 ];
 
@@ -234,5 +254,68 @@ export const SEED_CUSTOMERS: Customer[] = [
     notes: "Menunda kerja sama sampai renovasi gerai selesai.",
     createdAt: daysAgo(3),
     updatedAt: daysAgo(3),
+  },
+];
+
+export const SEED_ORDERS: Order[] = [
+  {
+    id: "ord_001",
+    customerId: "cst_001",
+    product: "Nugget Ayam Premium",
+    quantity: 1200,
+    notes: "Pengiriman ke gudang Jakarta, butuh armada berpendingin.",
+    status: "diproses",
+    createdAt: daysAgo(3),
+    updatedAt: daysAgo(1),
+  },
+  {
+    id: "ord_002",
+    customerId: "cst_001",
+    product: "Kentang Goreng Shoestring",
+    quantity: 800,
+    notes: "Restock rutin bulanan untuk wilayah Jabodetabek.",
+    status: "dikirim",
+    createdAt: daysAgo(9),
+    updatedAt: daysAgo(2),
+  },
+  {
+    id: "ord_003",
+    customerId: "cst_001",
+    product: "Fillet Ikan Dori",
+    quantity: 450,
+    notes: "Pesanan selesai, dokumen pengiriman sudah diterima.",
+    status: "selesai",
+    createdAt: daysAgo(24),
+    updatedAt: daysAgo(18),
+  },
+  {
+    id: "ord_004",
+    customerId: "cst_002",
+    product: "Daging Sapi Giling Beku",
+    quantity: 300,
+    notes: "Untuk kebutuhan menu steak resto akhir pekan.",
+    status: "baru",
+    createdAt: daysAgo(1),
+    updatedAt: daysAgo(1),
+  },
+  {
+    id: "ord_005",
+    customerId: "cst_002",
+    product: "Sosis Ayam Beku",
+    quantity: 200,
+    notes: "Tambah varian sarapan di outlet Bandung.",
+    status: "diproses",
+    createdAt: daysAgo(6),
+    updatedAt: daysAgo(3),
+  },
+  {
+    id: "ord_006",
+    customerId: "cst_009",
+    product: "Bakso Sapi Beku",
+    quantity: 950,
+    notes: "Distribusi wilayah Sumatera Utara, termin 30 hari.",
+    status: "baru",
+    createdAt: daysAgo(2),
+    updatedAt: daysAgo(2),
   },
 ];

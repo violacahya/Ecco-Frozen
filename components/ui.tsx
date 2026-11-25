@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { avatarColor, cn, initials } from "@/lib/utils";
-import { STATUS_LABEL, type CustomerStatus } from "@/lib/types";
+import { ORDER_STATUS_LABEL, STATUS_LABEL, type CustomerStatus, type OrderStatus } from "@/lib/types";
 import { CloseIcon } from "./icons";
 
 export function Modal({
@@ -85,6 +85,14 @@ export function Avatar({
 
 export function StatusBadge({ status }: { status: CustomerStatus }) {
   return <span className={cn("badge", `badge-${status}`)}>{STATUS_LABEL[status]}</span>;
+}
+
+export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+  return (
+    <span className={cn("badge order-badge", `order-${status}`)}>
+      {ORDER_STATUS_LABEL[status]}
+    </span>
+  );
 }
 
 export function EmptyState({

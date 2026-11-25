@@ -124,7 +124,7 @@ export default function CustomersPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `ecco-crm-pelanggan-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `ecco-frozen-pelanggan-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
     toast(`${filtered.length} data pelanggan diekspor ke CSV.`);
