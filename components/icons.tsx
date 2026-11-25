@@ -255,3 +255,23 @@ export function DownloadIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function BoxIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m21 8-9-5-9 5 9 5 9-5Z" />
+      <path d="M3 8v8l9 5 9-5V8" />
+      <path d="M12 13v8" />
+    </svg>
+  );
+}
+
+export function StoreIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 9h18l-1.5-5h-15L3 9Z" />
+      <path d="M4 9v11h16V9" />
+      <path d="M9 20v-6h6v6" />
+    </svg>
+  );
+}

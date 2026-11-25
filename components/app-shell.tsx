@@ -7,6 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { ROLE_LABEL } from "@/lib/types";
 import { avatarColor, cn, initials } from "@/lib/utils";
 import {
+  BoxIcon,
   CloseIcon,
   DashboardIcon,
   LogoutIcon,
@@ -16,10 +17,23 @@ import {
   UsersIcon,
 } from "./icons";
 
-const NAV = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof DashboardIcon;
+  adminOnly?: boolean;
+};
+
+const TEAM_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: DashboardIcon },
   { href: "/customers", label: "Pelanggan", icon: UsersIcon },
+  { href: "/orders", label: "Pesanan", icon: BoxIcon },
   { href: "/users", label: "Pengguna", icon: UserPlusIcon, adminOnly: true },
+];
+
+const CUSTOMER_NAV: NavItem[] = [
+  { href: "/portal", label: "Beranda Mitra", icon: DashboardIcon },
+  { href: "/portal/orders", label: "Pesanan Saya", icon: BoxIcon },
 ];
 
 export function AppShell({
@@ -38,24 +52,40 @@ export function AppShell({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const isCustomer = currentUser?.role === "customer";
+  const inPortal = pathname.startsWith("/portal");
+  const needsRedirect =
+    Boolean(currentUser) && (isCustomer ? !inPortal : inPortal);
+
   useEffect(() => {
-    if (ready && !currentUser) router.replace("/login");
-  }, [ready, currentUser, router]);
+    if (!ready) return;
+    if (!currentUser) {
+      router.replace("/login");
+      return;
+    }
+    if (currentUser.role === "customer" && !pathname.startsWith("/portal")) {
+      router.replace("/portal");
+    } else if (currentUser.role !== "customer" && pathname.startsWith("/portal")) {
+      router.replace("/");
+    }
+  }, [ready, currentUser, pathname, router]);
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
 
-  if (!ready || !currentUser) {
+  if (!ready || !currentUser || needsRedirect) {
     return (
       <div className="app-loading">
         <div className="app-loading-logo">
           <SnowflakeIcon size={28} />
         </div>
-        <p>Memuat Ecco CRM…</p>
+        <p>Memuat Ecco Frozen…</p>
       </div>
     );
   }
+
+  const navItems = isCustomer ? CUSTOMER_NAV : TEAM_NAV;
 
   return (
     <div className="app-shell">
@@ -73,8 +103,8 @@ export function AppShell({
             <SnowflakeIcon size={22} />
           </span>
           <span className="brand-text">
-            <strong>Ecco CRM</strong>
-            <small>Frozen Food Division</small>
+            <strong>Ecco Frozen</strong>
+            <small>{isCustomer ? "Portal Mitra" : "Frozen Food Partner"}</small>
           </span>
           <button
             type="button"
@@ -87,8 +117,8 @@ export function AppShell({
         </div>
 
         <nav className="sidebar-nav" aria-label="Navigasi utama">
-          <p className="sidebar-label">Menu Utama</p>
-          {NAV.filter((item) => !item.adminOnly || isAdmin).map((item) => {
+          <p className="sidebar-label">{isCustomer ? "Portal Mitra" : "Menu Utama"}</p>
+          {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
             return (
@@ -112,9 +142,11 @@ export function AppShell({
           <span className="sidebar-card-icon">
             <SnowflakeIcon size={18} />
           </span>
-          <p className="sidebar-card-title">Mode Demo</p>
+          <p className="sidebar-card-title">{isCustomer ? "Portal Pelanggan" : "Mode Demo"}</p>
           <p className="sidebar-card-text">
-            Data tersimpan otomatis di penyimpanan browser perangkat ini.
+            {isCustomer
+              ? "Pantau kerja sama dan ajukan pesanan langsung ke tim Ecco Frozen."
+              : "Data tersimpan otomatis di penyimpanan browser perangkat ini."}
           </p>
         </div>
 
@@ -153,7 +185,7 @@ export function AppShell({
             <MenuIcon size={20} />
           </button>
           <div className="topbar-context">
-            <span className="topbar-eyebrow">Ecco CRM</span>
+            <span className="topbar-eyebrow">Ecco Frozen</span>
             <span className="topbar-title">{title}</span>
           </div>
           <div className="topbar-right">

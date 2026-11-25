@@ -5,9 +5,9 @@ import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ecco CRM — Manajemen Pelanggan",
+  title: "Ecco Frozen — CRM & Portal Mitra",
   description:
-    "Aplikasi CRM sederhana untuk mengelola data pelanggan, memantau statistik penjualan, dan kolaborasi tim.",
+    "CRM dan portal mitra Ecco Frozen untuk mengelola pelanggan, pesanan, dan kerja sama distribusi frozen food.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

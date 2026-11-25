@@ -13,6 +13,7 @@ import {
   MailIcon,
   PlusIcon,
   ShieldIcon,
+  StoreIcon,
   TrashIcon,
   UserPlusIcon,
   UsersIcon,
@@ -24,10 +25,11 @@ const EMPTY: UserInput = {
   password: "",
   role: "staff",
   title: "",
+  customerId: undefined,
 };
 
 export default function UsersPage() {
-  const { users, currentUser, isAdmin, addUser, deleteUser, resetDemoData } = useApp();
+  const { users, customers, currentUser, isAdmin, addUser, deleteUser, resetDemoData } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -44,9 +46,13 @@ export default function UsersPage() {
       total: users.length,
       admin: users.filter((u) => u.role === "admin").length,
       staff: users.filter((u) => u.role === "staff").length,
+      customer: users.filter((u) => u.role === "customer").length,
     }),
     [users],
   );
+
+  const customerName = (customerId?: string) =>
+    customers.find((customer) => customer.id === customerId)?.company ?? "Belum terhubung";
 
   if (!isAdmin) {
     return (
@@ -81,6 +87,9 @@ export default function UsersPage() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
       next.email = "Format email tidak valid.";
     if (!form.title.trim()) next.title = "Jabatan wajib diisi.";
+    if (form.role === "customer" && !form.customerId) {
+      next.customerId = "Pilih data pelanggan untuk akun portal.";
+    }
     if (form.password.length < 6) next.password = "Kata sandi minimal 6 karakter.";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -128,7 +137,7 @@ export default function UsersPage() {
         </button>
       }
     >
-      <section className="stat-grid stat-grid-3">
+      <section className="stat-grid">
         <article className="stat-card stat-card-row">
           <span className="stat-icon stat-icon-blue">
             <UsersIcon size={20} />
@@ -156,13 +165,22 @@ export default function UsersPage() {
             <p className="stat-value">{summary.staff}</p>
           </div>
         </article>
+        <article className="stat-card stat-card-row">
+          <span className="stat-icon stat-icon-orange">
+            <StoreIcon size={20} />
+          </span>
+          <div>
+            <p className="stat-label">Akun Pelanggan</p>
+            <p className="stat-value">{summary.customer}</p>
+          </div>
+        </article>
       </section>
 
       <section className="panel">
         <div className="panel-head">
           <div>
             <h3 className="panel-title">Daftar Pengguna</h3>
-            <p className="panel-subtitle">Akun yang memiliki akses ke Ecco CRM</p>
+            <p className="panel-subtitle">Akun yang memiliki akses ke Ecco Frozen</p>
           </div>
           <span className="panel-badge">{users.length} akun</span>
         </div>
@@ -186,6 +204,7 @@ export default function UsersPage() {
                   </div>
                   <span className="user-title">
                     {user.title} · Bergabung {formatDate(user.createdAt)}
+                    {user.role === "customer" && ` · ${customerName(user.customerId)}`}
                   </span>
                 </div>
                 <span className="user-email">
@@ -194,6 +213,7 @@ export default function UsersPage() {
                 </span>
                 <span className={cn("role-badge", `role-${user.role}`)}>
                   {user.role === "admin" ? <ShieldIcon size={13} /> : null}
+                  {user.role === "customer" ? <StoreIcon size={13} /> : null}
                   {ROLE_LABEL[user.role]}
                 </span>
                 <button
@@ -289,12 +309,46 @@ export default function UsersPage() {
             <select
               id="uf-role"
               value={form.role}
-              onChange={(event) => setField("role", event.target.value as Role)}
+              onChange={(event) => {
+                const role = event.target.value as Role;
+                setForm((prev) => ({
+                  ...prev,
+                  role,
+                  customerId: role === "customer" ? prev.customerId : undefined,
+                }));
+                setErrors((prev) => ({ ...prev, role: undefined, customerId: undefined }));
+              }}
             >
-              <option value="staff">Staff — kelola pelanggan</option>
+              <option value="staff">Staff — kelola pelanggan & pesanan</option>
               <option value="admin">Admin — akses penuh</option>
+              <option value="customer">Pelanggan — portal mitra</option>
             </select>
           </div>
+          {form.role === "customer" && (
+            <div className="field field-full">
+              <label htmlFor="uf-customer">Data Pelanggan Terhubung *</label>
+              <select
+                id="uf-customer"
+                value={form.customerId ?? ""}
+                onChange={(event) => setField("customerId", event.target.value || undefined)}
+                className={errors.customerId ? "input-error" : ""}
+              >
+                <option value="">Pilih pelanggan…</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.company} — {customer.name}
+                  </option>
+                ))}
+              </select>
+              {errors.customerId ? (
+                <span className="field-error">{errors.customerId}</span>
+              ) : (
+                <span className="field-hint">
+                  Akun ini dapat masuk ke portal mitra dan melihat pesanan pelanggan tersebut.
+                </span>
+              )}
+            </div>
+          )}
           <div className="field field-full">
             <label htmlFor="uf-password">Kata Sandi *</label>
             <input

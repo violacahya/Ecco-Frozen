@@ -327,7 +327,7 @@ export default function DashboardPage() {
       </section>
 
       <p className="page-footnote">
-        Data terakhir diperbarui pada {formatDate(new Date().toISOString())} · Ecco CRM v1.0
+        Data terakhir diperbarui pada {formatDate(new Date().toISOString())} · Ecco Frozen CRM v1.1
       </p>
 
       <CustomerFormModal

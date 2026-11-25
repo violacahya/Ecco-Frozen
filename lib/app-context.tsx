@@ -9,13 +9,23 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { SEED_CUSTOMERS, SEED_USERS } from "./seed";
-import type { Customer, CustomerInput, Session, User, UserInput } from "./types";
+import { SEED_CUSTOMERS, SEED_ORDERS, SEED_USERS } from "./seed";
+import type {
+  Customer,
+  CustomerInput,
+  Order,
+  OrderInput,
+  OrderStatus,
+  Session,
+  User,
+  UserInput,
+} from "./types";
 import { uid } from "./utils";
 
 const KEYS = {
   users: "ecco_crm_users_v1",
   customers: "ecco_crm_customers_v1",
+  orders: "ecco_crm_orders_v1",
   session: "ecco_crm_session_v1",
 };
 
@@ -37,22 +47,51 @@ function writeJSON(key: string, value: unknown) {
   }
 }
 
+/**
+ * Memastikan akun demo pelanggan (dan data pelanggan yang terhubung) selalu
+ * tersedia, termasuk untuk pengguna yang sudah memiliki data lama di browser.
+ */
+function mergeDemoCustomerAccounts(users: User[], customers: Customer[]) {
+  const nextUsers = [...users];
+  const nextCustomers = [...customers];
+
+  SEED_USERS.filter((user) => user.role === "customer").forEach((seedUser) => {
+    if (!nextUsers.some((u) => u.email.toLowerCase() === seedUser.email.toLowerCase())) {
+      nextUsers.push(seedUser);
+    }
+    if (seedUser.customerId && !nextCustomers.some((c) => c.id === seedUser.customerId)) {
+      const seedCustomer = SEED_CUSTOMERS.find((c) => c.id === seedUser.customerId);
+      if (seedCustomer) nextCustomers.push(seedCustomer);
+    }
+  });
+
+  return { users: nextUsers, customers: nextCustomers };
+}
+
 interface LoginResult {
   ok: boolean;
   error?: string;
+  user?: User;
 }
 
 interface AppContextValue {
   ready: boolean;
   users: User[];
   customers: Customer[];
+  orders: Order[];
   currentUser: User | null;
+  currentCustomer: Customer | null;
   isAdmin: boolean;
+  isStaff: boolean;
+  isCustomer: boolean;
   login: (email: string, password: string) => LoginResult;
   logout: () => void;
   addCustomer: (input: CustomerInput) => Customer;
   updateCustomer: (id: string, input: CustomerInput) => void;
   deleteCustomer: (id: string) => void;
+  addOrder: (customerId: string, input: OrderInput) => Order;
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
+  deleteOrder: (id: string) => void;
   addUser: (input: UserInput) => LoginResult;
   deleteUser: (id: string) => LoginResult;
   resetDemoData: () => void;
@@ -64,21 +103,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUsers = readJSON<User[] | null>(KEYS.users, null);
     const storedCustomers = readJSON<Customer[] | null>(KEYS.customers, null);
+    const storedOrders = readJSON<Order[] | null>(KEYS.orders, null);
     const session = readJSON<Session | null>(KEYS.session, null);
 
-    const nextUsers = storedUsers ?? SEED_USERS;
-    const nextCustomers = storedCustomers ?? SEED_CUSTOMERS;
+    const merged = mergeDemoCustomerAccounts(
+      storedUsers ?? SEED_USERS,
+      storedCustomers ?? SEED_CUSTOMERS,
+    );
+    const nextUsers = merged.users;
+    const nextCustomers = merged.customers;
+    const nextOrders = storedOrders ?? SEED_ORDERS;
 
-    if (!storedUsers) writeJSON(KEYS.users, nextUsers);
-    if (!storedCustomers) writeJSON(KEYS.customers, nextCustomers);
+    if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
+    if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
+      writeJSON(KEYS.customers, nextCustomers);
+    }
+    if (!storedOrders) writeJSON(KEYS.orders, nextOrders);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
+    setOrders(nextOrders);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -95,10 +145,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     writeJSON(KEYS.customers, next);
   }, []);
 
+  const persistOrders = useCallback((next: Order[]) => {
+    setOrders(next);
+    writeJSON(KEYS.orders, next);
+  }, []);
+
   const currentUser = useMemo(
     () => users.find((u) => u.id === currentUserId) ?? null,
     [users, currentUserId],
   );
+
+  const currentCustomer = useMemo(() => {
+    if (!currentUser || currentUser.role !== "customer") return null;
+    return customers.find((c) => c.id === currentUser.customerId) ?? null;
+  }, [customers, currentUser]);
 
   const login = useCallback(
     (email: string, password: string): LoginResult => {
@@ -112,7 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const session: Session = { userId: found.id, loginAt: new Date().toISOString() };
       writeJSON(KEYS.session, session);
       setCurrentUserId(found.id);
-      return { ok: true };
+      return { ok: true, user: found };
     },
     [users],
   );
@@ -151,8 +211,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteCustomer = useCallback(
     (id: string) => {
       persistCustomers(customers.filter((c) => c.id !== id));
+      persistOrders(orders.filter((o) => o.customerId !== id));
+      // Akun portal yang terhubung ke pelanggan ini ikut dihapus.
+      const linked = users.filter((u) => u.customerId === id);
+      if (linked.length > 0) {
+        persistUsers(users.filter((u) => u.customerId !== id));
+      }
     },
-    [customers, persistCustomers],
+    [customers, orders, users, persistCustomers, persistOrders, persistUsers],
+  );
+
+  const addOrder = useCallback(
+    (customerId: string, input: OrderInput) => {
+      const stamp = new Date().toISOString();
+      const order: Order = {
+        ...input,
+        id: uid("ord"),
+        customerId,
+        status: "baru",
+        createdAt: stamp,
+        updatedAt: stamp,
+      };
+      persistOrders([order, ...orders]);
+      return order;
+    },
+    [orders, persistOrders],
+  );
+
+  const updateOrderStatus = useCallback(
+    (id: string, status: OrderStatus) => {
+      persistOrders(
+        orders.map((order) =>
+          order.id === id
+            ? { ...order, status, updatedAt: new Date().toISOString() }
+            : order,
+        ),
+      );
+    },
+    [orders, persistOrders],
+  );
+
+  const deleteOrder = useCallback(
+    (id: string) => {
+      persistOrders(orders.filter((order) => order.id !== id));
+    },
+    [orders, persistOrders],
   );
 
   const addUser = useCallback(
@@ -161,10 +264,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (users.some((u) => u.email.toLowerCase() === email)) {
         return { ok: false, error: "Email sudah digunakan oleh pengguna lain." };
       }
+      if (input.role === "customer" && !input.customerId) {
+        return { ok: false, error: "Pilih data pelanggan untuk akun portal." };
+      }
       const user: User = {
         ...input,
         email,
         id: uid("usr"),
+        customerId: input.role === "customer" ? input.customerId : undefined,
         createdAt: new Date().toISOString(),
       };
       persistUsers([...users, user]);
@@ -187,21 +294,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const resetDemoData = useCallback(() => {
     persistUsers(SEED_USERS);
     persistCustomers(SEED_CUSTOMERS);
+    persistOrders(SEED_ORDERS);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
-  }, [persistUsers, persistCustomers]);
+  }, [persistUsers, persistCustomers, persistOrders]);
 
   const value: AppContextValue = {
     ready,
     users,
     customers,
+    orders,
     currentUser,
+    currentCustomer,
     isAdmin: currentUser?.role === "admin",
+    isStaff: currentUser?.role === "staff",
+    isCustomer: currentUser?.role === "customer",
     login,
     logout,
     addCustomer,
     updateCustomer,
     deleteCustomer,
+    addOrder,
+    updateOrderStatus,
+    deleteOrder,
     addUser,
     deleteUser,
     resetDemoData,

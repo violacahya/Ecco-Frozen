@@ -3,7 +3,16 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/app-context";
-import { SnowflakeIcon, MailIcon, ShieldIcon, SparkIcon, TrendUpIcon, UsersIcon } from "@/components/icons";
+import {
+  BoxIcon,
+  MailIcon,
+  ShieldIcon,
+  SnowflakeIcon,
+  SparkIcon,
+  StoreIcon,
+  TrendUpIcon,
+  UsersIcon,
+} from "@/components/icons";
 import { Spinner } from "@/components/ui";
 
 const DEMO_ACCOUNTS = [
@@ -21,7 +30,23 @@ const DEMO_ACCOUNTS = [
     email: "staff@eccocrm.id",
     password: "staff123",
     icon: UsersIcon,
-    description: "Kelola data pelanggan",
+    description: "Kelola data pelanggan & pesanan",
+  },
+  {
+    label: "Pelanggan",
+    name: "Dewi Lestari",
+    email: "pelanggan@eccofrozen.id",
+    password: "pelanggan123",
+    icon: StoreIcon,
+    description: "Portal mitra — distributor",
+  },
+  {
+    label: "Pelanggan",
+    name: "Andi Wijaya",
+    email: "mitra@eccofrozen.id",
+    password: "mitra123",
+    icon: BoxIcon,
+    description: "Portal mitra — HoReCa",
   },
 ];
 
@@ -36,7 +61,9 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (ready && currentUser) router.replace("/");
+    if (ready && currentUser) {
+      router.replace(currentUser.role === "customer" ? "/portal" : "/");
+    }
   }, [ready, currentUser, router]);
 
   const handleSubmit = (event: FormEvent) => {
@@ -49,7 +76,7 @@ export default function LoginPage() {
     setSubmitting(true);
     const result = login(email, password);
     if (result.ok) {
-      router.push("/");
+      router.push(result.user?.role === "customer" ? "/portal" : "/");
     } else {
       setError(result.error ?? "Gagal masuk. Silakan coba lagi.");
       setSubmitting(false);
@@ -71,8 +98,8 @@ export default function LoginPage() {
               <SnowflakeIcon size={26} />
             </span>
             <div>
-              <strong>Ecco CRM</strong>
-              <small>Frozen Food Division</small>
+              <strong>Ecco Frozen</strong>
+              <small>CRM & Portal Mitra</small>
             </div>
           </div>
 
@@ -82,11 +109,11 @@ export default function LoginPage() {
               Customer Relationship Management
             </p>
             <h1>
-              Kelola pelanggan beku Anda dengan <span>lebih hangat.</span>
+              Mitra Ecco Frozen, dikelola dengan <span>lebih hangat.</span>
             </h1>
             <p className="login-lead">
-              Satu tempat untuk memantau data pelanggan, status kerja sama, dan performa penjualan
-              tim. Dirancang untuk bisnis frozen food yang bergerak cepat.
+              Satu tempat untuk memantau data pelanggan, status kerja sama, pesanan, dan performa
+              penjualan tim Ecco Frozen. Portal mitra kini tersedia untuk pelanggan.
             </p>
           </div>
 
@@ -115,7 +142,7 @@ export default function LoginPage() {
               </span>
               <div>
                 <strong>Akses berbasis peran</strong>
-                <p>Admin dan staff memiliki hak akses yang berbeda.</p>
+                <p>Admin, staff, dan pelanggan memiliki portal masing-masing.</p>
               </div>
             </div>
           </div>
@@ -130,7 +157,7 @@ export default function LoginPage() {
                 <strong>+18% pelanggan aktif</strong>
               </div>
             </div>
-            <p>© {new Date().getFullYear()} Ecco CRM · Tugas Akhir Mata Kuliah Sistem Informasi</p>
+            <p>© {new Date().getFullYear()} Ecco Frozen · Tugas Akhir Mata Kuliah Sistem Informasi</p>
           </div>
         </div>
       </section>
@@ -140,7 +167,7 @@ export default function LoginPage() {
           <div className="login-heading">
             <span className="login-mobile-brand">
               <SnowflakeIcon size={18} />
-              Ecco CRM
+              Ecco Frozen
             </span>
             <h2>Masuk ke akun Anda</h2>
             <p>Gunakan email dan kata sandi yang terdaftar untuk melanjutkan.</p>
@@ -155,7 +182,7 @@ export default function LoginPage() {
                   id="login-email"
                   type="email"
                   autoComplete="username"
-                  placeholder="nama@eccocrm.id"
+                  placeholder="nama@eccofrozen.id"
                   value={email}
                   onChange={(event) => {
                     setEmail(event.target.value);
@@ -232,8 +259,8 @@ export default function LoginPage() {
 
           <p className="login-note">
             <ShieldIcon size={14} />
-            Data disimpan lokal di browser Anda. Ini adalah aplikasi demo untuk keperluan tugas
-            kuliah.
+            Data disimpan lokal di browser Anda. Akun pelanggan demo dapat langsung digunakan untuk
+            mencoba portal mitra Ecco Frozen.
           </p>
         </div>
       </section>
