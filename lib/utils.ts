@@ -50,13 +50,13 @@ export function initials(name: string): string {
 }
 
 const AVATAR_COLORS = [
-  "#0b7fe8",
-  "#0ea5a0",
-  "#7c5cf0",
-  "#e0663a",
-  "#d1348c",
-  "#2f8f4e",
-  "#b7791f",
+  "#3e2f59",
+  "#8c4a76",
+  "#6e8a2e",
+  "#7a5a9e",
+  "#a2537f",
+  "#5b4184",
+  "#8a6a9c",
 ];
 
 export function avatarColor(seed: string): string {

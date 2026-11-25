@@ -16,8 +16,8 @@ export function BarChart({ data }: { data: Array<{ label: string; value: number 
       <svg viewBox={`0 0 ${width} ${height}`} className="chart-svg" role="img" aria-label="Grafik pelanggan baru per bulan">
         <defs>
           <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2f9bff" />
-            <stop offset="100%" stopColor="#0b6bd1" />
+            <stop offset="0%" stopColor="#dcf68a" />
+            <stop offset="100%" stopColor="#a9d63f" />
           </linearGradient>
         </defs>
         {Array.from({ length: ticks + 1 }).map((_, index) => {
@@ -30,7 +30,7 @@ export function BarChart({ data }: { data: Array<{ label: string; value: number 
                 y1={y}
                 x2={width - padding.right}
                 y2={y}
-                stroke="#e8eef7"
+                stroke="#f4ecf2"
                 strokeDasharray={index === 0 ? "0" : "4 5"}
               />
               <text x={padding.left - 10} y={y + 4} textAnchor="end" className="chart-tick">
@@ -91,7 +91,7 @@ export function DonutChart({
     <div className="donut-wrap">
       <div className="donut-chart">
         <svg viewBox="0 0 140 140" role="img" aria-label="Distribusi status pelanggan">
-          <circle cx="70" cy="70" r={radius} fill="none" stroke="#eef3fa" strokeWidth={stroke} />
+          <circle cx="70" cy="70" r={radius} fill="none" stroke="#f6eff4" strokeWidth={stroke} />
           {total > 0 &&
             data.map((item) => {
               const length = (item.value / total) * circumference;
