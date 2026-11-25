@@ -21,9 +21,9 @@ import {
 import { CustomerFormModal } from "@/components/customer-form-modal";
 
 const STATUS_COLORS = {
-  aktif: "#16a34a",
-  prospek: "#0b7fe8",
-  nonaktif: "#94a3b8",
+  aktif: "#a9d63f",
+  prospek: "#dbb0cf",
+  nonaktif: "#c9c0d8",
 };
 
 export default function DashboardPage() {
