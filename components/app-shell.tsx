@@ -8,6 +8,7 @@ import { ROLE_LABEL } from "@/lib/types";
 import { avatarColor, cn, initials } from "@/lib/utils";
 import {
   BoxIcon,
+  CartIcon,
   CloseIcon,
   DashboardIcon,
   LogoutIcon,
@@ -28,6 +29,7 @@ const TEAM_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: DashboardIcon },
   { href: "/customers", label: "Pelanggan", icon: UsersIcon },
   { href: "/orders", label: "Pesanan", icon: BoxIcon },
+  { href: "/pos", label: "Kasir (POS)", icon: CartIcon },
   { href: "/users", label: "Pengguna", icon: UserPlusIcon, adminOnly: true },
 ];
 

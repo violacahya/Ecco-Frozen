@@ -3,6 +3,73 @@ export type CustomerStatus = "aktif" | "prospek" | "nonaktif";
 export type CustomerSegment = "distributor" | "retail" | "horeca" | "industri";
 export type OrderStatus = "baru" | "diproses" | "dikirim" | "selesai";
 
+/* ---------- Katalog produk & kasir (POS) ---------- */
+
+export type ProductCategory = "Seafood" | "Daging" | "Olahan" | "Sayur";
+export type ProductUnit = "pack" | "kg";
+export type PaymentMethod = "tunai" | "qris" | "transfer";
+
+export interface FrozenProduct {
+  id: string;
+  sku: string;
+  name: string;
+  category: ProductCategory;
+  unit: ProductUnit;
+  price: number;
+  minOrder: number;
+  storageTemp: string;
+  stock: number;
+  badge: string;
+  description: string;
+}
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  unit: string;
+  qty: number;
+  price: number;
+}
+
+/**
+ * Transaksi penjualan langsung (kasir). Terpisah dari `Order` yang dipakai
+ * untuk permintaan pasokan B2B agar alur pesanan mitra tidak berubah.
+ */
+export interface CustomerOrder {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  company: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  deliveryDate: string;
+  deliveryAddress: string;
+  notes: string;
+  coldChainTemp: string;
+  createdAt: string;
+  updatedAt: string;
+  paymentMethod?: PaymentMethod;
+  cashPaid?: number;
+  change?: number;
+  cashierName?: string;
+}
+
+export interface PosCartLine {
+  product: FrozenProduct;
+  qty: number;
+}
+
+export interface PosTransactionInput {
+  customerId?: string;
+  customerName?: string;
+  items: OrderItem[];
+  paymentMethod: PaymentMethod;
+  cashPaid?: number;
+  change?: number;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -74,6 +141,19 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   diproses: "Diproses",
   dikirim: "Dikirim",
   selesai: "Selesai",
+};
+
+export const PRODUCT_CATEGORIES: ProductCategory[] = [
+  "Seafood",
+  "Daging",
+  "Olahan",
+  "Sayur",
+];
+
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  tunai: "Tunai",
+  qris: "QRIS",
+  transfer: "Transfer Bank",
 };
 
 export const PRODUCT_OPTIONS = [
