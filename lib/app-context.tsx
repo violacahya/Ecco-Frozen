@@ -9,11 +9,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { SEED_CUSTOMERS, SEED_ORDERS, SEED_PRODUCTS, SEED_USERS } from "./seed";
+import { SEED_CUSTOMERS, SEED_EXPENSES, SEED_ORDERS, SEED_PRODUCTS, SEED_USERS } from "./seed";
 import type {
   Customer,
   CustomerInput,
   CustomerOrder,
+  ExpenseCategory,
+  ExpenseRecord,
   FrozenProduct,
   Order,
   OrderInput,
@@ -33,6 +35,7 @@ const KEYS = {
   products: "ecco_crm_products_v1",
   posOrders: "ecco_crm_pos_orders_v1",
   restockLog: "ecco_crm_restock_log_v1",
+  expenses: "ecco_crm_expenses_v1",
   session: "ecco_crm_session_v1",
 };
 
@@ -89,6 +92,7 @@ interface AppContextValue {
   products: FrozenProduct[];
   posOrders: CustomerOrder[];
   restockLog: StockMovement[];
+  expenses: ExpenseRecord[];
   currentUser: User | null;
   currentCustomer: Customer | null;
   isAdmin: boolean;
@@ -104,6 +108,11 @@ interface AppContextValue {
   deleteOrder: (id: string) => void;
   createPosTransaction: (input: PosTransactionInput) => CustomerOrder;
   restockProduct: (productId: string, quantityAdded: number, note?: string) => void;
+  addExpense: (input: {
+    category: ExpenseCategory;
+    amount: number;
+    description: string;
+  }) => ExpenseRecord;
   addProduct: (input: Omit<FrozenProduct, "id">) => FrozenProduct;
   updateProduct: (id: string, updates: Partial<FrozenProduct>) => void;
   addUser: (input: UserInput) => LoginResult;
@@ -121,6 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<FrozenProduct[]>([]);
   const [posOrders, setPosOrders] = useState<CustomerOrder[]>([]);
   const [restockLog, setRestockLog] = useState<StockMovement[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,6 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const storedProducts = readJSON<FrozenProduct[] | null>(KEYS.products, null);
     const storedPosOrders = readJSON<CustomerOrder[] | null>(KEYS.posOrders, null);
     const storedRestockLog = readJSON<StockMovement[] | null>(KEYS.restockLog, null);
+    const storedExpenses = readJSON<ExpenseRecord[] | null>(KEYS.expenses, null);
     const session = readJSON<Session | null>(KEYS.session, null);
 
     const merged = mergeDemoCustomerAccounts(
@@ -142,6 +153,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextProducts = storedProducts ?? SEED_PRODUCTS;
     const nextPosOrders = storedPosOrders ?? [];
     const nextRestockLog = storedRestockLog ?? [];
+    const nextExpenses = storedExpenses ?? SEED_EXPENSES;
 
     if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
     if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
@@ -151,6 +163,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!storedProducts) writeJSON(KEYS.products, nextProducts);
     if (!storedPosOrders) writeJSON(KEYS.posOrders, nextPosOrders);
     if (!storedRestockLog) writeJSON(KEYS.restockLog, nextRestockLog);
+    if (!storedExpenses) writeJSON(KEYS.expenses, nextExpenses);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
@@ -158,6 +171,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProducts(nextProducts);
     setPosOrders(nextPosOrders);
     setRestockLog(nextRestockLog);
+    setExpenses(nextExpenses);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -192,6 +206,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const persistRestockLog = useCallback((next: StockMovement[]) => {
     setRestockLog(next);
     writeJSON(KEYS.restockLog, next);
+  }, []);
+
+  const persistExpenses = useCallback((next: ExpenseRecord[]) => {
+    setExpenses(next);
+    writeJSON(KEYS.expenses, next);
   }, []);
 
   const currentUser = useMemo(
@@ -385,6 +404,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [products, restockLog, currentUser, persistProducts, persistRestockLog],
   );
 
+  const addExpense = useCallback(
+    (input: { category: ExpenseCategory; amount: number; description: string }): ExpenseRecord => {
+      const expense: ExpenseRecord = {
+        id: uid("exp"),
+        category: input.category,
+        amount: Math.max(0, Math.round(input.amount)),
+        description: input.description.trim(),
+        date: new Date().toISOString(),
+        createdBy: currentUser?.name ?? "Admin",
+      };
+      persistExpenses([expense, ...expenses]);
+      return expense;
+    },
+    [expenses, currentUser, persistExpenses],
+  );
+
   const addProduct = useCallback(
     (input: Omit<FrozenProduct, "id">): FrozenProduct => {
       const product: FrozenProduct = { ...input, id: uid("prd") };
@@ -445,6 +480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistProducts(SEED_PRODUCTS);
     persistPosOrders([]);
     persistRestockLog([]);
+    persistExpenses(SEED_EXPENSES);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
   }, [
@@ -454,6 +490,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistProducts,
     persistPosOrders,
     persistRestockLog,
+    persistExpenses,
   ]);
 
   const value: AppContextValue = {
@@ -464,6 +501,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     products,
     posOrders,
     restockLog,
+    expenses,
     currentUser,
     currentCustomer,
     isAdmin: currentUser?.role === "admin",
@@ -479,6 +517,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteOrder,
     createPosTransaction,
     restockProduct,
+    addExpense,
     addProduct,
     updateProduct,
     addUser,

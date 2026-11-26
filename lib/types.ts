@@ -36,6 +36,25 @@ export interface StockMovement {
   createdBy: string;
 }
 
+/* ---------- Keuangan & arus kas ---------- */
+
+export type ExpenseCategory =
+  | "listrik_air"
+  | "operasional"
+  | "perlengkapan"
+  | "gaji"
+  | "lainnya";
+
+/** Catatan pengeluaran operasional toko untuk laporan laba bersih. */
+export interface ExpenseRecord {
+  id: string;
+  category: ExpenseCategory;
+  amount: number;
+  description: string;
+  date: string;
+  createdBy: string;
+}
+
 export interface OrderItem {
   productId: string;
   productName: string;
@@ -169,6 +188,22 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   qris: "QRIS",
   transfer: "Transfer Bank",
 };
+
+export const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
+  listrik_air: "Listrik & Air Freezer",
+  operasional: "Operasional Toko",
+  perlengkapan: "Perlengkapan & Kemasan",
+  gaji: "Gaji Karyawan",
+  lainnya: "Lain-lain",
+};
+
+export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  "listrik_air",
+  "operasional",
+  "perlengkapan",
+  "gaji",
+  "lainnya",
+];
 
 export const PRODUCT_OPTIONS = [
   "Nugget Ayam Premium",
