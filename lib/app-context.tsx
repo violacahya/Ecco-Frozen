@@ -20,6 +20,7 @@ import type {
   OrderStatus,
   PosTransactionInput,
   Session,
+  StockMovement,
   User,
   UserInput,
 } from "./types";
@@ -31,6 +32,7 @@ const KEYS = {
   orders: "ecco_crm_orders_v1",
   products: "ecco_crm_products_v1",
   posOrders: "ecco_crm_pos_orders_v1",
+  restockLog: "ecco_crm_restock_log_v1",
   session: "ecco_crm_session_v1",
 };
 
@@ -86,6 +88,7 @@ interface AppContextValue {
   orders: Order[];
   products: FrozenProduct[];
   posOrders: CustomerOrder[];
+  restockLog: StockMovement[];
   currentUser: User | null;
   currentCustomer: Customer | null;
   isAdmin: boolean;
@@ -100,6 +103,9 @@ interface AppContextValue {
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void;
   createPosTransaction: (input: PosTransactionInput) => CustomerOrder;
+  restockProduct: (productId: string, quantityAdded: number, note?: string) => void;
+  addProduct: (input: Omit<FrozenProduct, "id">) => FrozenProduct;
+  updateProduct: (id: string, updates: Partial<FrozenProduct>) => void;
   addUser: (input: UserInput) => LoginResult;
   deleteUser: (id: string) => LoginResult;
   resetDemoData: () => void;
@@ -114,6 +120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<FrozenProduct[]>([]);
   const [posOrders, setPosOrders] = useState<CustomerOrder[]>([]);
+  const [restockLog, setRestockLog] = useState<StockMovement[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -122,6 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const storedOrders = readJSON<Order[] | null>(KEYS.orders, null);
     const storedProducts = readJSON<FrozenProduct[] | null>(KEYS.products, null);
     const storedPosOrders = readJSON<CustomerOrder[] | null>(KEYS.posOrders, null);
+    const storedRestockLog = readJSON<StockMovement[] | null>(KEYS.restockLog, null);
     const session = readJSON<Session | null>(KEYS.session, null);
 
     const merged = mergeDemoCustomerAccounts(
@@ -133,6 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextOrders = storedOrders ?? SEED_ORDERS;
     const nextProducts = storedProducts ?? SEED_PRODUCTS;
     const nextPosOrders = storedPosOrders ?? [];
+    const nextRestockLog = storedRestockLog ?? [];
 
     if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
     if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
@@ -141,12 +150,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!storedOrders) writeJSON(KEYS.orders, nextOrders);
     if (!storedProducts) writeJSON(KEYS.products, nextProducts);
     if (!storedPosOrders) writeJSON(KEYS.posOrders, nextPosOrders);
+    if (!storedRestockLog) writeJSON(KEYS.restockLog, nextRestockLog);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
     setOrders(nextOrders);
     setProducts(nextProducts);
     setPosOrders(nextPosOrders);
+    setRestockLog(nextRestockLog);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -176,6 +187,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const persistPosOrders = useCallback((next: CustomerOrder[]) => {
     setPosOrders(next);
     writeJSON(KEYS.posOrders, next);
+  }, []);
+
+  const persistRestockLog = useCallback((next: StockMovement[]) => {
+    setRestockLog(next);
+    writeJSON(KEYS.restockLog, next);
   }, []);
 
   const currentUser = useMemo(
@@ -338,6 +354,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [products, posOrders, customers, currentUser, persistProducts, persistPosOrders],
   );
 
+  const restockProduct = useCallback(
+    (productId: string, quantityAdded: number, note?: string) => {
+      const quantity = Math.floor(quantityAdded);
+      if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+      const target = products.find((product) => product.id === productId);
+      if (!target) return;
+
+      persistProducts(
+        products.map((product) =>
+          product.id === productId
+            ? { ...product, stock: product.stock + quantity }
+            : product,
+        ),
+      );
+
+      const movement: StockMovement = {
+        id: uid("rst"),
+        productId: target.id,
+        productName: target.name,
+        sku: target.sku,
+        quantity,
+        note: note?.trim() ?? "",
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.name ?? "Staf",
+      };
+      persistRestockLog([movement, ...restockLog]);
+    },
+    [products, restockLog, currentUser, persistProducts, persistRestockLog],
+  );
+
+  const addProduct = useCallback(
+    (input: Omit<FrozenProduct, "id">): FrozenProduct => {
+      const product: FrozenProduct = { ...input, id: uid("prd") };
+      persistProducts([product, ...products]);
+      return product;
+    },
+    [products, persistProducts],
+  );
+
+  const updateProduct = useCallback(
+    (id: string, updates: Partial<FrozenProduct>) => {
+      persistProducts(
+        products.map((product) =>
+          product.id === id ? { ...product, ...updates, id: product.id } : product,
+        ),
+      );
+    },
+    [products, persistProducts],
+  );
+
   const addUser = useCallback(
     (input: UserInput): LoginResult => {
       const email = input.email.trim().toLowerCase();
@@ -377,9 +444,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistOrders(SEED_ORDERS);
     persistProducts(SEED_PRODUCTS);
     persistPosOrders([]);
+    persistRestockLog([]);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
-  }, [persistUsers, persistCustomers, persistOrders, persistProducts, persistPosOrders]);
+  }, [
+    persistUsers,
+    persistCustomers,
+    persistOrders,
+    persistProducts,
+    persistPosOrders,
+    persistRestockLog,
+  ]);
 
   const value: AppContextValue = {
     ready,
@@ -388,6 +463,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     orders,
     products,
     posOrders,
+    restockLog,
     currentUser,
     currentCustomer,
     isAdmin: currentUser?.role === "admin",
@@ -402,6 +478,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateOrderStatus,
     deleteOrder,
     createPosTransaction,
+    restockProduct,
+    addProduct,
+    updateProduct,
     addUser,
     deleteUser,
     resetDemoData,

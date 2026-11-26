@@ -266,6 +266,16 @@ export function BoxIcon(props: IconProps) {
   );
 }
 
+export function PackageIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8Z" />
+      <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
+      <path d="m7.5 4.27 9 5.15" />
+    </svg>
+  );
+}
+
 export function StoreIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
