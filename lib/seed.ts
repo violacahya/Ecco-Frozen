@@ -1,4 +1,4 @@
-import type { Customer, FrozenProduct, Order, User } from "./types";
+import type { Customer, ExpenseRecord, FrozenProduct, Order, User } from "./types";
 
 const now = new Date();
 
@@ -317,6 +317,33 @@ export const SEED_ORDERS: Order[] = [
     status: "baru",
     createdAt: daysAgo(2),
     updatedAt: daysAgo(2),
+  },
+];
+
+export const SEED_EXPENSES: ExpenseRecord[] = [
+  {
+    id: "exp_001",
+    category: "listrik_air",
+    amount: 1200000,
+    description: "Listrik Cold Storage & Freezer",
+    date: daysAgo(4),
+    createdBy: "Rangga Pratama",
+  },
+  {
+    id: "exp_002",
+    category: "perlengkapan",
+    amount: 180000,
+    description: "Plastik Vacuum & Thermal Struk",
+    date: daysAgo(6),
+    createdBy: "Nadia Putri",
+  },
+  {
+    id: "exp_003",
+    category: "operasional",
+    amount: 350000,
+    description: "Bensin armada & tol pengiriman",
+    date: daysAgo(2),
+    createdBy: "Budi Santoso",
   },
 ];
 

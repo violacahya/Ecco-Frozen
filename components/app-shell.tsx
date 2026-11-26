@@ -17,6 +17,7 @@ import {
   SnowflakeIcon,
   UserPlusIcon,
   UsersIcon,
+  WalletIcon,
 } from "./icons";
 
 type NavItem = {
@@ -32,6 +33,7 @@ const TEAM_NAV: NavItem[] = [
   { href: "/orders", label: "Pesanan", icon: BoxIcon },
   { href: "/pos", label: "Kasir (POS)", icon: CartIcon },
   { href: "/inventory", label: "Inventaris & Stok", icon: PackageIcon },
+  { href: "/finance", label: "Keuangan & Laba", icon: WalletIcon },
   { href: "/users", label: "Pengguna", icon: UserPlusIcon, adminOnly: true },
 ];
 
