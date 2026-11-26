@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { SEED_CUSTOMERS, SEED_EXPENSES, SEED_ORDERS, SEED_PRODUCTS, SEED_USERS } from "./seed";
+import { SEED_CUSTOMERS, SEED_EXPENSES, SEED_ORDERS, SEED_PRODUCTS, SEED_SUPPLIERS, SEED_USERS } from "./seed";
 import type {
   Customer,
   CustomerInput,
@@ -23,6 +23,8 @@ import type {
   PosTransactionInput,
   Session,
   StockMovement,
+  Supplier,
+  SupplierInput,
   User,
   UserInput,
 } from "./types";
@@ -36,6 +38,7 @@ const KEYS = {
   posOrders: "ecco_crm_pos_orders_v1",
   restockLog: "ecco_crm_restock_log_v1",
   expenses: "ecco_crm_expenses_v1",
+  suppliers: "ecco_crm_suppliers_v1",
   session: "ecco_crm_session_v1",
 };
 
@@ -93,6 +96,7 @@ interface AppContextValue {
   posOrders: CustomerOrder[];
   restockLog: StockMovement[];
   expenses: ExpenseRecord[];
+  suppliers: Supplier[];
   currentUser: User | null;
   currentCustomer: Customer | null;
   isAdmin: boolean;
@@ -115,6 +119,9 @@ interface AppContextValue {
   }) => ExpenseRecord;
   addProduct: (input: Omit<FrozenProduct, "id">) => FrozenProduct;
   updateProduct: (id: string, updates: Partial<FrozenProduct>) => void;
+  addSupplier: (input: SupplierInput) => Supplier;
+  updateSupplier: (id: string, updates: Partial<Supplier>) => void;
+  deleteSupplier: (id: string) => void;
   addUser: (input: UserInput) => LoginResult;
   deleteUser: (id: string) => LoginResult;
   resetDemoData: () => void;
@@ -131,6 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [posOrders, setPosOrders] = useState<CustomerOrder[]>([]);
   const [restockLog, setRestockLog] = useState<StockMovement[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -141,6 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const storedPosOrders = readJSON<CustomerOrder[] | null>(KEYS.posOrders, null);
     const storedRestockLog = readJSON<StockMovement[] | null>(KEYS.restockLog, null);
     const storedExpenses = readJSON<ExpenseRecord[] | null>(KEYS.expenses, null);
+    const storedSuppliers = readJSON<Supplier[] | null>(KEYS.suppliers, null);
     const session = readJSON<Session | null>(KEYS.session, null);
 
     const merged = mergeDemoCustomerAccounts(
@@ -154,6 +163,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextPosOrders = storedPosOrders ?? [];
     const nextRestockLog = storedRestockLog ?? [];
     const nextExpenses = storedExpenses ?? SEED_EXPENSES;
+    const nextSuppliers = storedSuppliers ?? SEED_SUPPLIERS;
 
     if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
     if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
@@ -164,6 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!storedPosOrders) writeJSON(KEYS.posOrders, nextPosOrders);
     if (!storedRestockLog) writeJSON(KEYS.restockLog, nextRestockLog);
     if (!storedExpenses) writeJSON(KEYS.expenses, nextExpenses);
+    if (!storedSuppliers) writeJSON(KEYS.suppliers, nextSuppliers);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
@@ -172,6 +183,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPosOrders(nextPosOrders);
     setRestockLog(nextRestockLog);
     setExpenses(nextExpenses);
+    setSuppliers(nextSuppliers);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -211,6 +223,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const persistExpenses = useCallback((next: ExpenseRecord[]) => {
     setExpenses(next);
     writeJSON(KEYS.expenses, next);
+  }, []);
+
+  const persistSuppliers = useCallback((next: Supplier[]) => {
+    setSuppliers(next);
+    writeJSON(KEYS.suppliers, next);
   }, []);
 
   const currentUser = useMemo(
@@ -440,6 +457,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [products, persistProducts],
   );
 
+  const addSupplier = useCallback(
+    (input: SupplierInput): Supplier => {
+      const supplier: Supplier = {
+        ...input,
+        id: uid("sup"),
+        createdAt: new Date().toISOString(),
+      };
+      persistSuppliers([supplier, ...suppliers]);
+      return supplier;
+    },
+    [suppliers, persistSuppliers],
+  );
+
+  const updateSupplier = useCallback(
+    (id: string, updates: Partial<Supplier>) => {
+      persistSuppliers(
+        suppliers.map((supplier) =>
+          supplier.id === id ? { ...supplier, ...updates, id: supplier.id } : supplier,
+        ),
+      );
+    },
+    [suppliers, persistSuppliers],
+  );
+
+  const deleteSupplier = useCallback(
+    (id: string) => {
+      persistSuppliers(suppliers.filter((supplier) => supplier.id !== id));
+    },
+    [suppliers, persistSuppliers],
+  );
+
   const addUser = useCallback(
     (input: UserInput): LoginResult => {
       const email = input.email.trim().toLowerCase();
@@ -481,6 +529,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistPosOrders([]);
     persistRestockLog([]);
     persistExpenses(SEED_EXPENSES);
+    persistSuppliers(SEED_SUPPLIERS);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
   }, [
@@ -491,6 +540,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistPosOrders,
     persistRestockLog,
     persistExpenses,
+    persistSuppliers,
   ]);
 
   const value: AppContextValue = {
@@ -502,6 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     posOrders,
     restockLog,
     expenses,
+    suppliers,
     currentUser,
     currentCustomer,
     isAdmin: currentUser?.role === "admin",
@@ -520,6 +571,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addExpense,
     addProduct,
     updateProduct,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
     addUser,
     deleteUser,
     resetDemoData,

@@ -1,4 +1,4 @@
-import type { Customer, ExpenseRecord, FrozenProduct, Order, User } from "./types";
+import type { Customer, ExpenseRecord, FrozenProduct, Order, Supplier, User } from "./types";
 
 const now = new Date();
 
@@ -555,5 +555,41 @@ export const SEED_PRODUCTS: FrozenProduct[] = [
     stock: 2,
     badge: "Baru",
     description: "Edamame beku kemasan 500 gram, camilan sehat tinggi protein.",
+  },
+];
+
+export const SEED_SUPPLIERS: Supplier[] = [
+  {
+    id: "sup_001",
+    name: "PT Sumber Primafood (Fiesta & Champ)",
+    contactPerson: "Bpk. Gunawan",
+    phone: "081288990011",
+    email: "sales@sumberprimafood.co.id",
+    address: "Kawasan Industri Pulogadung Blok C-7, Jakarta Timur",
+    suppliedCategories: ["Olahan"],
+    notes: "Supplier utama nugget, sosis, dan bakso. Minimal order 1 karton.",
+    createdAt: daysAgo(180),
+  },
+  {
+    id: "sup_002",
+    name: "CV Lautan Beku Nusantara",
+    contactPerson: "Ibu Maya",
+    phone: "081377889922",
+    email: "maya@lautanbeku.co.id",
+    address: "Jl. Raya Muara Baru No. 45, Penjaringan, Jakarta Utara",
+    suppliedCategories: ["Seafood"],
+    notes: "Spesialis udang, dori, dan cumi beku. Pengiriman tiap Selasa & Jumat.",
+    createdAt: daysAgo(140),
+  },
+  {
+    id: "sup_003",
+    name: "PT Agro Daging Sejahtera",
+    contactPerson: "Bpk. Reza",
+    phone: "082155667788",
+    email: "reza@agrodaging.co.id",
+    address: "Jl. Industri Raya No. 12, Cikarang Barat, Bekasi",
+    suppliedCategories: ["Daging"],
+    notes: "Daging sapi giling dan potongan beku. Wajib konfirmasi stok H-1.",
+    createdAt: daysAgo(95),
   },
 ];

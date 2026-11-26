@@ -69,6 +69,35 @@ export function uid(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/**
+ * Menormalkan nomor HP Indonesia ke format internasional tanpa tanda "+"
+ * agar bisa dipakai langsung pada tautan wa.me (mis. "0812-8899-0011" → "6281288990011").
+ */
+export function normalizeWhatsAppNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+
+  let normalized = digits;
+  if (normalized.startsWith("00")) normalized = normalized.slice(2);
+  if (normalized.startsWith("620")) normalized = `62${normalized.slice(3)}`;
+  else if (normalized.startsWith("0")) normalized = `62${normalized.slice(1)}`;
+  else if (normalized.startsWith("8")) normalized = `62${normalized}`;
+
+  return normalized;
+}
+
+/** Menampilkan nomor HP dengan pemisah per 4 digit, mis. "0812-8899-0011". */
+export function formatPhoneDisplay(phone: string): string {
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return trimmed;
+
+  const local = digits.startsWith("62") ? `0${digits.slice(2)}` : digits;
+  if (!local.startsWith("0")) return trimmed;
+
+  return local.replace(/(\d{4})(?=\d)/g, "$1-");
+}
+
 export function cn(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
 }
