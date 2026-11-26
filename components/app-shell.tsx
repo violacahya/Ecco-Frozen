@@ -13,6 +13,7 @@ import {
   DashboardIcon,
   LogoutIcon,
   MenuIcon,
+  PackageIcon,
   SnowflakeIcon,
   UserPlusIcon,
   UsersIcon,
@@ -30,6 +31,7 @@ const TEAM_NAV: NavItem[] = [
   { href: "/customers", label: "Pelanggan", icon: UsersIcon },
   { href: "/orders", label: "Pesanan", icon: BoxIcon },
   { href: "/pos", label: "Kasir (POS)", icon: CartIcon },
+  { href: "/inventory", label: "Inventaris & Stok", icon: PackageIcon },
   { href: "/users", label: "Pengguna", icon: UserPlusIcon, adminOnly: true },
 ];
 

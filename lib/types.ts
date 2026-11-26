@@ -6,7 +6,8 @@ export type OrderStatus = "baru" | "diproses" | "dikirim" | "selesai";
 /* ---------- Katalog produk & kasir (POS) ---------- */
 
 export type ProductCategory = "Seafood" | "Daging" | "Olahan" | "Sayur";
-export type ProductUnit = "pack" | "kg";
+/** Satuan jual bebas, mis. "pack", "kg", "Pack 500g", atau "Karton 10 kg". */
+export type ProductUnit = string;
 export type PaymentMethod = "tunai" | "qris" | "transfer";
 
 export interface FrozenProduct {
@@ -21,6 +22,18 @@ export interface FrozenProduct {
   stock: number;
   badge: string;
   description: string;
+}
+
+/** Catatan barang masuk dari supplier untuk audit stok freezer. */
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  note: string;
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface OrderItem {
@@ -116,6 +129,7 @@ export interface Order {
 export type CustomerInput = Omit<Customer, "id" | "createdAt" | "updatedAt">;
 export type UserInput = Omit<User, "id" | "createdAt">;
 export type OrderInput = Pick<Order, "product" | "quantity" | "notes">;
+export type ProductInput = Omit<FrozenProduct, "id">;
 
 export const STATUS_LABEL: Record<CustomerStatus, string> = {
   aktif: "Aktif",
