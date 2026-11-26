@@ -7,20 +7,22 @@ import { useToast } from "@/components/toast";
 import { useApp } from "@/lib/app-context";
 import {
   ORDER_STATUS_LABEL,
+  PAYMENT_METHOD_LABEL,
   type Order,
   type OrderStatus,
 } from "@/lib/types";
-import { formatDate, relativeTime } from "@/lib/utils";
+import { formatDate, formatIDR, relativeTime } from "@/lib/utils";
 import {
   AlertIcon,
   BoxIcon,
+  CartIcon,
   FilterIcon,
   SearchIcon,
   TrashIcon,
 } from "@/components/icons";
 
 export default function OrdersPage() {
-  const { orders, customers, isAdmin, updateOrderStatus, deleteOrder } = useApp();
+  const { orders, posOrders, customers, isAdmin, updateOrderStatus, deleteOrder } = useApp();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -207,6 +209,69 @@ export default function OrdersPage() {
                           </div>
                         </td>
                       )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel panel-table pos-history-panel">
+        <div className="panel-head pos-history-head">
+          <div>
+            <h3 className="panel-title">Transaksi Kasir (POS)</h3>
+            <p className="panel-subtitle">
+              Penjualan langsung yang diselesaikan melalui halaman kasir
+            </p>
+          </div>
+          <span className="panel-badge">{posOrders.length} transaksi</span>
+        </div>
+
+        {posOrders.length === 0 ? (
+          <EmptyState
+            icon={<CartIcon size={26} />}
+            title="Belum ada transaksi kasir"
+            description="Transaksi yang diselesaikan di halaman Kasir (POS) akan muncul di sini."
+          />
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>No. Transaksi</th>
+                  <th>Pelanggan</th>
+                  <th>Item</th>
+                  <th className="cell-right">Total</th>
+                  <th>Metode</th>
+                  <th>Waktu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posOrders.slice(0, 8).map((order) => {
+                  const itemCount = order.items.reduce((sum, item) => sum + item.qty, 0);
+                  return (
+                    <tr key={order.id}>
+                      <td className="cell-strong">{order.orderNumber}</td>
+                      <td>
+                        <div className="pos-history-customer">
+                          <span className="person-name">{order.customerName}</span>
+                          <span className="person-sub">{order.company}</span>
+                        </div>
+                      </td>
+                      <td className="cell-muted">
+                        {order.items.length} produk · {itemCount} item
+                      </td>
+                      <td className="cell-right cell-strong">
+                        {formatIDR(order.totalAmount)}
+                      </td>
+                      <td>
+                        {order.paymentMethod
+                          ? PAYMENT_METHOD_LABEL[order.paymentMethod]
+                          : "—"}
+                      </td>
+                      <td className="cell-muted">{relativeTime(order.createdAt)}</td>
                     </tr>
                   );
                 })}

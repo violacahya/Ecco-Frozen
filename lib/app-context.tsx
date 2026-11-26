@@ -9,13 +9,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { SEED_CUSTOMERS, SEED_ORDERS, SEED_USERS } from "./seed";
+import { SEED_CUSTOMERS, SEED_ORDERS, SEED_PRODUCTS, SEED_USERS } from "./seed";
 import type {
   Customer,
   CustomerInput,
+  CustomerOrder,
+  FrozenProduct,
   Order,
   OrderInput,
   OrderStatus,
+  PosTransactionInput,
   Session,
   User,
   UserInput,
@@ -26,6 +29,8 @@ const KEYS = {
   users: "ecco_crm_users_v1",
   customers: "ecco_crm_customers_v1",
   orders: "ecco_crm_orders_v1",
+  products: "ecco_crm_products_v1",
+  posOrders: "ecco_crm_pos_orders_v1",
   session: "ecco_crm_session_v1",
 };
 
@@ -79,6 +84,8 @@ interface AppContextValue {
   users: User[];
   customers: Customer[];
   orders: Order[];
+  products: FrozenProduct[];
+  posOrders: CustomerOrder[];
   currentUser: User | null;
   currentCustomer: Customer | null;
   isAdmin: boolean;
@@ -92,6 +99,7 @@ interface AppContextValue {
   addOrder: (customerId: string, input: OrderInput) => Order;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void;
+  createPosTransaction: (input: PosTransactionInput) => CustomerOrder;
   addUser: (input: UserInput) => LoginResult;
   deleteUser: (id: string) => LoginResult;
   resetDemoData: () => void;
@@ -104,12 +112,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<FrozenProduct[]>([]);
+  const [posOrders, setPosOrders] = useState<CustomerOrder[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUsers = readJSON<User[] | null>(KEYS.users, null);
     const storedCustomers = readJSON<Customer[] | null>(KEYS.customers, null);
     const storedOrders = readJSON<Order[] | null>(KEYS.orders, null);
+    const storedProducts = readJSON<FrozenProduct[] | null>(KEYS.products, null);
+    const storedPosOrders = readJSON<CustomerOrder[] | null>(KEYS.posOrders, null);
     const session = readJSON<Session | null>(KEYS.session, null);
 
     const merged = mergeDemoCustomerAccounts(
@@ -119,16 +131,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextUsers = merged.users;
     const nextCustomers = merged.customers;
     const nextOrders = storedOrders ?? SEED_ORDERS;
+    const nextProducts = storedProducts ?? SEED_PRODUCTS;
+    const nextPosOrders = storedPosOrders ?? [];
 
     if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
     if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
       writeJSON(KEYS.customers, nextCustomers);
     }
     if (!storedOrders) writeJSON(KEYS.orders, nextOrders);
+    if (!storedProducts) writeJSON(KEYS.products, nextProducts);
+    if (!storedPosOrders) writeJSON(KEYS.posOrders, nextPosOrders);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
     setOrders(nextOrders);
+    setProducts(nextProducts);
+    setPosOrders(nextPosOrders);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -148,6 +166,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const persistOrders = useCallback((next: Order[]) => {
     setOrders(next);
     writeJSON(KEYS.orders, next);
+  }, []);
+
+  const persistProducts = useCallback((next: FrozenProduct[]) => {
+    setProducts(next);
+    writeJSON(KEYS.products, next);
+  }, []);
+
+  const persistPosOrders = useCallback((next: CustomerOrder[]) => {
+    setPosOrders(next);
+    writeJSON(KEYS.posOrders, next);
   }, []);
 
   const currentUser = useMemo(
@@ -258,6 +286,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [orders, persistOrders],
   );
 
+  const createPosTransaction = useCallback(
+    (input: PosTransactionInput): CustomerOrder => {
+      const stamp = new Date().toISOString();
+      const items = input.items.filter((item) => item.qty > 0);
+      const totalAmount = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const customer = input.customerId
+        ? customers.find((c) => c.id === input.customerId)
+        : undefined;
+
+      const dayKey = stamp.slice(0, 10);
+      const sequence =
+        posOrders.filter((order) => order.createdAt.slice(0, 10) === dayKey).length + 1;
+      const orderNumber = `INV-${dayKey.replace(/-/g, "")}-${String(sequence).padStart(3, "0")}`;
+
+      const order: CustomerOrder = {
+        id: uid("pos"),
+        orderNumber,
+        customerId: customer?.id ?? "walk-in",
+        customerName:
+          input.customerName?.trim() || customer?.name || "Pelanggan Umum (Walk-in)",
+        company: customer?.company ?? "Walk-in",
+        items,
+        totalAmount,
+        status: "selesai",
+        deliveryDate: stamp,
+        deliveryAddress: customer?.city
+          ? `Ambil di toko · ${customer.city}`
+          : "Ambil di toko (walk-in)",
+        notes: "",
+        coldChainTemp: "-18 °C",
+        createdAt: stamp,
+        updatedAt: stamp,
+        paymentMethod: input.paymentMethod,
+        cashPaid: input.paymentMethod === "tunai" ? input.cashPaid ?? totalAmount : totalAmount,
+        change: input.paymentMethod === "tunai" ? input.change ?? 0 : 0,
+        cashierName: currentUser?.name ?? "Kasir",
+      };
+
+      const sold = new Map(items.map((item) => [item.productId, item.qty]));
+      persistProducts(
+        products.map((product) => {
+          const qty = sold.get(product.id);
+          if (!qty) return product;
+          return { ...product, stock: Math.max(0, product.stock - qty) };
+        }),
+      );
+      persistPosOrders([order, ...posOrders]);
+      return order;
+    },
+    [products, posOrders, customers, currentUser, persistProducts, persistPosOrders],
+  );
+
   const addUser = useCallback(
     (input: UserInput): LoginResult => {
       const email = input.email.trim().toLowerCase();
@@ -295,15 +375,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistUsers(SEED_USERS);
     persistCustomers(SEED_CUSTOMERS);
     persistOrders(SEED_ORDERS);
+    persistProducts(SEED_PRODUCTS);
+    persistPosOrders([]);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
-  }, [persistUsers, persistCustomers, persistOrders]);
+  }, [persistUsers, persistCustomers, persistOrders, persistProducts, persistPosOrders]);
 
   const value: AppContextValue = {
     ready,
     users,
     customers,
     orders,
+    products,
+    posOrders,
     currentUser,
     currentCustomer,
     isAdmin: currentUser?.role === "admin",
@@ -317,6 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addOrder,
     updateOrderStatus,
     deleteOrder,
+    createPosTransaction,
     addUser,
     deleteUser,
     resetDemoData,
