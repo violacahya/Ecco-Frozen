@@ -36,6 +36,22 @@ export interface StockMovement {
   createdBy: string;
 }
 
+/* ---------- Manajemen pemasok (SCM) ---------- */
+
+/** Mitra pemasok frozen food beserta PIC dan kategori produk yang disuplai. */
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson: string;
+  /** Nomor WhatsApp, boleh diawali 0, 62, atau +62. */
+  phone: string;
+  email?: string;
+  address: string;
+  suppliedCategories: ProductCategory[];
+  notes?: string;
+  createdAt: string;
+}
+
 /* ---------- Keuangan & arus kas ---------- */
 
 export type ExpenseCategory =
@@ -146,6 +162,7 @@ export interface Order {
 }
 
 export type CustomerInput = Omit<Customer, "id" | "createdAt" | "updatedAt">;
+export type SupplierInput = Omit<Supplier, "id" | "createdAt">;
 export type UserInput = Omit<User, "id" | "createdAt">;
 export type OrderInput = Pick<Order, "product" | "quantity" | "notes">;
 export type ProductInput = Omit<FrozenProduct, "id">;
