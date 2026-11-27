@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/ui";
 import { PosCart } from "@/components/pos-cart";
@@ -26,10 +26,12 @@ const CATEGORY_TABS: CategoryFilter[] = ["Semua", ...PRODUCT_CATEGORIES];
 
 function ProductCard({
   product,
+  price,
   inCart,
   onAdd,
 }: {
   product: FrozenProduct;
+  price: number;
   inCart: number;
   onAdd: () => void;
 }) {
@@ -72,7 +74,7 @@ function ProductCard({
 
       <span className="pos-product-foot">
         <span className="pos-price">
-          {formatIDR(product.price)}
+          {formatIDR(price)}
           <small>/{product.unit}</small>
         </span>
         {inCart > 0 ? (
@@ -86,7 +88,7 @@ function ProductCard({
 }
 
 export default function PosPage() {
-  const { products, customers, createPosTransaction } = useApp();
+  const { products, customers, customerPrices, createPosTransaction } = useApp();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -115,7 +117,7 @@ export default function PosPage() {
   const totalQty = useMemo(() => cart.reduce((sum, line) => sum + line.qty, 0), [cart]);
 
   const total = useMemo(
-    () => cart.reduce((sum, line) => sum + line.qty * line.product.price, 0),
+    () => cart.reduce((sum, line) => sum + line.qty * line.price, 0),
     [cart],
   );
 
@@ -124,8 +126,34 @@ export default function PosPage() {
     [customers, customerId],
   );
 
+  /**
+   * Harga borong pelanggan terpilih. Kosong = pakai harga normal.
+   * Walk-in (tanpa pelanggan) selalu harga normal.
+   */
+  const priceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!customerId) return map;
+    customerPrices
+      .filter((entry) => entry.customerId === customerId)
+      .forEach((entry) => map.set(entry.productId, entry.price));
+    return map;
+  }, [customerPrices, customerId]);
+
+  const priceOf = (product: FrozenProduct) => priceMap.get(product.id) ?? product.price;
+
+  /** Ganti pelanggan → seluruh isi keranjang ikut dihitung ulang saat itu juga. */
+  useEffect(() => {
+    setCart((prev) =>
+      prev.map((line) => {
+        const nextPrice = priceMap.get(line.product.id) ?? line.product.price;
+        return nextPrice === line.price ? line : { ...line, price: nextPrice };
+      }),
+    );
+  }, [priceMap]);
+
   const addToCart = (product: FrozenProduct) => {
     if (product.stock <= 0) return;
+    const unitPrice = priceOf(product);
     setCart((prev) => {
       const existing = prev.find((line) => line.product.id === product.id);
       if (existing) {
@@ -134,7 +162,7 @@ export default function PosPage() {
           line.product.id === product.id ? { ...line, qty: line.qty + 1 } : line,
         );
       }
-      return [...prev, { product, qty: 1 }];
+      return [...prev, { product, qty: 1, price: unitPrice }];
     });
   };
 
@@ -170,7 +198,7 @@ export default function PosPage() {
       productName: line.product.name,
       unit: line.product.unit,
       qty: line.qty,
-      price: line.product.price,
+      price: line.price,
     }));
 
     const order = createPosTransaction({
@@ -238,6 +266,7 @@ export default function PosPage() {
                 <ProductCard
                   key={product.id}
                   product={product}
+                  price={priceOf(product)}
                   inCart={cartQty.get(product.id) ?? 0}
                   onAdd={() => addToCart(product)}
                 />

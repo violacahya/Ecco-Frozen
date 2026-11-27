@@ -336,6 +336,7 @@ export default function InventoryPage() {
                   <th>Waktu</th>
                   <th>Produk</th>
                   <th className="cell-right">Jumlah</th>
+                  <th className="cell-right">Harga Beli</th>
                   <th>Catatan / Surat Jalan</th>
                   <th>Dicatat Oleh</th>
                 </tr>
@@ -353,6 +354,9 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="cell-right cell-strong">+{movement.quantity}</td>
+                    <td className="cell-right cell-muted">
+                      {movement.unitCost ? formatIDR(movement.unitCost) : "—"}
+                    </td>
                     <td className="inv-history-note">{movement.note || "—"}</td>
                     <td className="cell-muted">{movement.createdBy}</td>
                   </tr>

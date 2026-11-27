@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/app-context";
 import {
@@ -51,7 +51,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function LoginPage() {
-  const { ready, currentUser, login } = useApp();
+  const { ready, currentUser, login, users } = useApp();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -59,6 +59,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  /**
+   * Hanya tampilkan kartu demo yang akunnya masih ada. Admin bisa menghapus
+   * akun demo, dan kartu yang sudah tidak valid sebaiknya tidak muncul lagi.
+   */
+  const demoAccounts = useMemo(
+    () =>
+      DEMO_ACCOUNTS.filter((account) =>
+        users.some((user) => user.email.toLowerCase() === account.email.toLowerCase()),
+      ),
+    [users],
+  );
 
   useEffect(() => {
     if (ready && currentUser) {
@@ -233,7 +245,7 @@ export default function LoginPage() {
           </div>
 
           <div className="demo-accounts">
-            {DEMO_ACCOUNTS.map((account) => {
+            {demoAccounts.map((account) => {
               const Icon = account.icon;
               return (
                 <button

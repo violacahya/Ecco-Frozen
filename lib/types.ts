@@ -34,6 +34,25 @@ export interface StockMovement {
   note: string;
   createdAt: string;
   createdBy: string;
+  /**
+   * Harga beli per unit saat restock (opsional). Hanya untuk catatan HPP,
+   * tidak pernah mengubah harga jual katalog maupun harga khusus pelanggan.
+   */
+  unitCost?: number;
+}
+
+/**
+ * Harga khusus (harga borong) satu produk untuk satu pelanggan.
+ * Tidak ada baris = pelanggan memakai harga normal katalog.
+ * Angka disimpan tetap, tanpa diskon/persen, sehingga perubahan harga
+ * katalog tidak menggeser harga pelanggan ini.
+ */
+export interface CustomerPrice {
+  id: string;
+  customerId: string;
+  productId: string;
+  price: number;
+  updatedAt: string;
 }
 
 /* ---------- Manajemen pemasok (SCM) ---------- */
@@ -107,6 +126,8 @@ export interface CustomerOrder {
 export interface PosCartLine {
   product: FrozenProduct;
   qty: number;
+  /** Harga hasil resolve (harga khusus pelanggan ?? harga normal) saat masuk keranjang. */
+  price: number;
 }
 
 export interface PosTransactionInput {
@@ -220,15 +241,4 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   "perlengkapan",
   "gaji",
   "lainnya",
-];
-
-export const PRODUCT_OPTIONS = [
-  "Nugget Ayam Premium",
-  "Kentang Goreng Shoestring",
-  "Daging Sapi Giling Beku",
-  "Fillet Ikan Dori",
-  "Sosis Ayam Beku",
-  "Bakso Sapi Beku",
-  "Udang Kupas Beku",
-  "Mixed Vegetables Beku",
 ];

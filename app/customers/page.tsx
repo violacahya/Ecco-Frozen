@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { CustomerFormModal } from "@/components/customer-form-modal";
+import { CustomerPricesModal } from "@/components/customer-prices-modal";
 import { Avatar, EmptyState, Modal, StatusBadge } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useApp } from "@/lib/app-context";
@@ -24,6 +25,7 @@ import {
   MailIcon,
   PhoneIcon,
   PlusIcon,
+  PriceTagIcon,
   SearchIcon,
   TrashIcon,
   UsersIcon,
@@ -34,7 +36,7 @@ const PAGE_SIZE = 8;
 type SortKey = "recent" | "name" | "value";
 
 export default function CustomersPage() {
-  const { customers, deleteCustomer, isAdmin } = useApp();
+  const { customers, customerPrices, deleteCustomer, isAdmin } = useApp();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -44,7 +46,16 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [pricingCustomer, setPricingCustomer] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState<Customer | null>(null);
+
+  const priceCountByCustomer = useMemo(() => {
+    const map = new Map<string, number>();
+    customerPrices.forEach((entry) => {
+      map.set(entry.customerId, (map.get(entry.customerId) ?? 0) + 1);
+    });
+    return map;
+  }, [customerPrices]);
 
   useEffect(() => {
     setPage(1);
@@ -278,6 +289,23 @@ export default function CustomersPage() {
                         <div className="row-actions">
                           <button
                             type="button"
+                            className={cn(
+                              "icon-button",
+                              (priceCountByCustomer.get(customer.id) ?? 0) > 0 &&
+                                "icon-button-accent",
+                            )}
+                            title={
+                              (priceCountByCustomer.get(customer.id) ?? 0) > 0
+                                ? `${priceCountByCustomer.get(customer.id)} harga khusus`
+                                : "Atur harga khusus"
+                            }
+                            aria-label={`Atur harga khusus ${customer.name}`}
+                            onClick={() => setPricingCustomer(customer)}
+                          >
+                            <PriceTagIcon size={16} />
+                          </button>
+                          <button
+                            type="button"
                             className="icon-button"
                             title="Edit pelanggan"
                             aria-label={`Edit ${customer.name}`}
@@ -354,6 +382,20 @@ export default function CustomersPage() {
               ? `Data pelanggan "${name}" berhasil diperbarui.`
               : `Pelanggan "${name}" berhasil ditambahkan.`,
           );
+        }}
+      />
+
+      <CustomerPricesModal
+        open={Boolean(pricingCustomer)}
+        customer={pricingCustomer}
+        onClose={() => setPricingCustomer(null)}
+        onSaved={(count) => {
+          toast(
+            count > 0
+              ? `${count} harga khusus untuk "${pricingCustomer?.name}" berhasil disimpan.`
+              : `Harga khusus "${pricingCustomer?.name}" dikosongkan — kembali ke harga normal.`,
+          );
+          setPricingCustomer(null);
         }}
       />
 

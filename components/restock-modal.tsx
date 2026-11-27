@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useApp } from "@/lib/app-context";
 import type { FrozenProduct } from "@/lib/types";
+import { formatIDR } from "@/lib/utils";
 import { PackageIcon } from "./icons";
 import { Modal } from "./ui";
 
@@ -15,15 +16,22 @@ export function RestockModal({
   open: boolean;
   product: FrozenProduct | null;
   onClose: () => void;
-  onSaved: (product: FrozenProduct, quantity: number, newStock: number) => void;
+  onSaved: (
+    product: FrozenProduct,
+    quantity: number,
+    newStock: number,
+    unitCost?: number,
+  ) => void;
 }) {
   const { restockProduct } = useApp();
   const [quantityText, setQuantityText] = useState("");
+  const [costText, setCostText] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setQuantityText("");
+    setCostText("");
     setNote("");
   }, [open, product?.id]);
 
@@ -32,12 +40,13 @@ export function RestockModal({
   const currentStock = product?.stock ?? 0;
   const added = invalid ? 0 : quantity;
   const newStock = currentStock + added;
+  const unitCost = costText === "" ? undefined : Number(costText);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!product || invalid) return;
-    restockProduct(product.id, quantity, note);
-    onSaved(product, quantity, newStock);
+    restockProduct(product.id, quantity, note, unitCost);
+    onSaved(product, quantity, newStock, unitCost);
   };
 
   return (
@@ -97,6 +106,23 @@ export function RestockModal({
             {quantityText !== "" && invalid && (
               <span className="field-error">Jumlah barang masuk harus lebih dari 0.</span>
             )}
+          </div>
+
+          <div className="field">
+            <label htmlFor="restock-cost">Harga Beli / Unit (Rp, opsional)</label>
+            <input
+              id="restock-cost"
+              type="text"
+              inputMode="numeric"
+              placeholder="Contoh: 65000"
+              value={costText}
+              onChange={(event) => setCostText(event.target.value.replace(/[^\d]/g, ""))}
+            />
+            <span className="field-hint">
+              {unitCost && unitCost > 0
+                ? `Harga beli ${product.unit}: ${formatIDR(unitCost)}`
+                : "Hanya untuk catatan HPP. Tidak mengubah harga jual di katalog."}
+            </span>
           </div>
 
           <div className="field">

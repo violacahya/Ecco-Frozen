@@ -331,3 +331,13 @@ export function WhatsAppIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Label harga — dipakai untuk menandai harga khusus pelanggan. */
+export function PriceTagIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M20.6 12.3 12.3 20.6a2 2 0 0 1-2.8 0l-6.1-6.1a2 2 0 0 1 0-2.8L11.7 3.4a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.9a2 2 0 0 1-.4 1.6Z" />
+      <circle cx="16.5" cy="7.5" r="1.4" />
+    </svg>
+  );
+}

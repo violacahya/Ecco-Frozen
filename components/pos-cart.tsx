@@ -73,7 +73,7 @@ export function PosCart({
                   <div className="pos-cart-item-main">
                     <strong>{line.product.name}</strong>
                     <small>
-                      {formatIDR(line.product.price)} / {line.product.unit}
+                      {formatIDR(line.price)} / {line.product.unit}
                     </small>
                   </div>
 
@@ -98,7 +98,7 @@ export function PosCart({
                   </div>
 
                   <span className="pos-cart-line-total">
-                    {formatIDR(line.qty * line.product.price)}
+                    {formatIDR(line.qty * line.price)}
                   </span>
 
                   <button
