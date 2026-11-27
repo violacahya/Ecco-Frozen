@@ -14,6 +14,7 @@ import type {
   Customer,
   CustomerInput,
   CustomerOrder,
+  CustomerPrice,
   ExpenseCategory,
   ExpenseRecord,
   FrozenProduct,
@@ -28,7 +29,7 @@ import type {
   User,
   UserInput,
 } from "./types";
-import { uid } from "./utils";
+import { localDayKey, uid } from "./utils";
 
 const KEYS = {
   users: "ecco_crm_users_v1",
@@ -39,7 +40,9 @@ const KEYS = {
   restockLog: "ecco_crm_restock_log_v1",
   expenses: "ecco_crm_expenses_v1",
   suppliers: "ecco_crm_suppliers_v1",
+  customerPrices: "ecco_crm_customer_prices_v1",
   session: "ecco_crm_session_v1",
+  demoAccountsMerged: "ecco_crm_demo_accounts_merged_v1",
 };
 
 function readJSON<T>(key: string, fallback: T): T {
@@ -61,8 +64,11 @@ function writeJSON(key: string, value: unknown) {
 }
 
 /**
- * Memastikan akun demo pelanggan (dan data pelanggan yang terhubung) selalu
- * tersedia, termasuk untuk pengguna yang sudah memiliki data lama di browser.
+ * Menambahkan akun demo pelanggan (dan data pelanggan yang terhubung) untuk
+ * pengguna yang sudah memiliki data lama di browser sebelum fitur portal ada.
+ *
+ * Fungsi ini hanya dijalankan SEKALI (dijaga flag `demoAccountsMerged`) supaya
+ * akun atau pelanggan yang sengaja dihapus admin tidak muncul lagi saat reload.
  */
 function mergeDemoCustomerAccounts(users: User[], customers: Customer[]) {
   const nextUsers = [...users];
@@ -97,6 +103,7 @@ interface AppContextValue {
   restockLog: StockMovement[];
   expenses: ExpenseRecord[];
   suppliers: Supplier[];
+  customerPrices: CustomerPrice[];
   currentUser: User | null;
   currentCustomer: Customer | null;
   isAdmin: boolean;
@@ -107,11 +114,23 @@ interface AppContextValue {
   addCustomer: (input: CustomerInput) => Customer;
   updateCustomer: (id: string, input: CustomerInput) => void;
   deleteCustomer: (id: string) => void;
+  /** Harga efektif: harga khusus pelanggan bila ada, jika tidak harga normal. */
+  resolvePrice: (product: FrozenProduct, customerId?: string | null) => number;
+  /** Simpan banyak harga sekaligus. `null` menghapus harga khusus produk tersebut. */
+  saveCustomerPrices: (
+    customerId: string,
+    entries: Record<string, number | null>,
+  ) => void;
   addOrder: (customerId: string, input: OrderInput) => Order;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void;
   createPosTransaction: (input: PosTransactionInput) => CustomerOrder;
-  restockProduct: (productId: string, quantityAdded: number, note?: string) => void;
+  restockProduct: (
+    productId: string,
+    quantityAdded: number,
+    note?: string,
+    unitCost?: number,
+  ) => void;
   addExpense: (input: {
     category: ExpenseCategory;
     amount: number;
@@ -139,6 +158,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [restockLog, setRestockLog] = useState<StockMovement[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customerPrices, setCustomerPrices] = useState<CustomerPrice[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -150,12 +170,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const storedRestockLog = readJSON<StockMovement[] | null>(KEYS.restockLog, null);
     const storedExpenses = readJSON<ExpenseRecord[] | null>(KEYS.expenses, null);
     const storedSuppliers = readJSON<Supplier[] | null>(KEYS.suppliers, null);
+    const storedCustomerPrices = readJSON<CustomerPrice[] | null>(KEYS.customerPrices, null);
     const session = readJSON<Session | null>(KEYS.session, null);
+    const demoAccountsMerged = readJSON<boolean>(KEYS.demoAccountsMerged, false);
 
-    const merged = mergeDemoCustomerAccounts(
-      storedUsers ?? SEED_USERS,
-      storedCustomers ?? SEED_CUSTOMERS,
-    );
+    const merged = demoAccountsMerged
+      ? { users: storedUsers ?? SEED_USERS, customers: storedCustomers ?? SEED_CUSTOMERS }
+      : mergeDemoCustomerAccounts(
+          storedUsers ?? SEED_USERS,
+          storedCustomers ?? SEED_CUSTOMERS,
+        );
+    if (!demoAccountsMerged) writeJSON(KEYS.demoAccountsMerged, true);
+
     const nextUsers = merged.users;
     const nextCustomers = merged.customers;
     const nextOrders = storedOrders ?? SEED_ORDERS;
@@ -164,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextRestockLog = storedRestockLog ?? [];
     const nextExpenses = storedExpenses ?? SEED_EXPENSES;
     const nextSuppliers = storedSuppliers ?? SEED_SUPPLIERS;
+    const nextCustomerPrices = storedCustomerPrices ?? [];
 
     if (!storedUsers || nextUsers.length !== storedUsers.length) writeJSON(KEYS.users, nextUsers);
     if (!storedCustomers || nextCustomers.length !== storedCustomers.length) {
@@ -175,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!storedRestockLog) writeJSON(KEYS.restockLog, nextRestockLog);
     if (!storedExpenses) writeJSON(KEYS.expenses, nextExpenses);
     if (!storedSuppliers) writeJSON(KEYS.suppliers, nextSuppliers);
+    if (!storedCustomerPrices) writeJSON(KEYS.customerPrices, nextCustomerPrices);
 
     setUsers(nextUsers);
     setCustomers(nextCustomers);
@@ -184,6 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRestockLog(nextRestockLog);
     setExpenses(nextExpenses);
     setSuppliers(nextSuppliers);
+    setCustomerPrices(nextCustomerPrices);
     if (session && nextUsers.some((u) => u.id === session.userId)) {
       setCurrentUserId(session.userId);
     }
@@ -228,6 +257,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const persistSuppliers = useCallback((next: Supplier[]) => {
     setSuppliers(next);
     writeJSON(KEYS.suppliers, next);
+  }, []);
+
+  const persistCustomerPrices = useCallback((next: CustomerPrice[]) => {
+    setCustomerPrices(next);
+    writeJSON(KEYS.customerPrices, next);
   }, []);
 
   const currentUser = useMemo(
@@ -292,13 +326,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string) => {
       persistCustomers(customers.filter((c) => c.id !== id));
       persistOrders(orders.filter((o) => o.customerId !== id));
+      // Harga khusus milik pelanggan ini ikut dihapus.
+      persistCustomerPrices(customerPrices.filter((p) => p.customerId !== id));
       // Akun portal yang terhubung ke pelanggan ini ikut dihapus.
       const linked = users.filter((u) => u.customerId === id);
       if (linked.length > 0) {
         persistUsers(users.filter((u) => u.customerId !== id));
       }
     },
-    [customers, orders, users, persistCustomers, persistOrders, persistUsers],
+    [
+      customers,
+      orders,
+      users,
+      customerPrices,
+      persistCustomers,
+      persistOrders,
+      persistCustomerPrices,
+      persistUsers,
+    ],
+  );
+
+  const resolvePrice = useCallback(
+    (product: FrozenProduct, customerId?: string | null) => {
+      if (!customerId) return product.price;
+      const override = customerPrices.find(
+        (entry) => entry.customerId === customerId && entry.productId === product.id,
+      );
+      return override ? override.price : product.price;
+    },
+    [customerPrices],
+  );
+
+  const saveCustomerPrices = useCallback(
+    (customerId: string, entries: Record<string, number | null>) => {
+      const stamp = new Date().toISOString();
+      const next = customerPrices.filter((entry) => entry.customerId !== customerId);
+      const added: CustomerPrice[] = [];
+
+      Object.entries(entries).forEach(([productId, value]) => {
+        if (value === null || !Number.isFinite(value) || value <= 0) return;
+        const existing = customerPrices.find(
+          (entry) => entry.customerId === customerId && entry.productId === productId,
+        );
+        added.push({
+          id: existing?.id ?? uid("cpr"),
+          customerId,
+          productId,
+          price: Math.round(value),
+          updatedAt: stamp,
+        });
+      });
+
+      persistCustomerPrices([...next, ...added]);
+    },
+    [customerPrices, persistCustomerPrices],
   );
 
   const addOrder = useCallback(
@@ -347,9 +428,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? customers.find((c) => c.id === input.customerId)
         : undefined;
 
-      const dayKey = stamp.slice(0, 10);
+      const dayKey = localDayKey(new Date(stamp));
       const sequence =
-        posOrders.filter((order) => order.createdAt.slice(0, 10) === dayKey).length + 1;
+        posOrders.filter((order) => localDayKey(new Date(order.createdAt)) === dayKey).length + 1;
       const orderNumber = `INV-${dayKey.replace(/-/g, "")}-${String(sequence).padStart(3, "0")}`;
 
       const order: CustomerOrder = {
@@ -391,7 +472,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const restockProduct = useCallback(
-    (productId: string, quantityAdded: number, note?: string) => {
+    (productId: string, quantityAdded: number, note?: string, unitCost?: number) => {
       const quantity = Math.floor(quantityAdded);
       if (!Number.isFinite(quantity) || quantity <= 0) return;
 
@@ -415,6 +496,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         note: note?.trim() ?? "",
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.name ?? "Staf",
+        unitCost:
+          unitCost && Number.isFinite(unitCost) && unitCost > 0
+            ? Math.round(unitCost)
+            : undefined,
       };
       persistRestockLog([movement, ...restockLog]);
     },
@@ -530,6 +615,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistRestockLog([]);
     persistExpenses(SEED_EXPENSES);
     persistSuppliers(SEED_SUPPLIERS);
+    persistCustomerPrices([]);
     window.localStorage.removeItem(KEYS.session);
     setCurrentUserId(null);
   }, [
@@ -541,6 +627,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     persistRestockLog,
     persistExpenses,
     persistSuppliers,
+    persistCustomerPrices,
   ]);
 
   const value: AppContextValue = {
@@ -553,6 +640,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     restockLog,
     expenses,
     suppliers,
+    customerPrices,
     currentUser,
     currentCustomer,
     isAdmin: currentUser?.role === "admin",
@@ -563,6 +651,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCustomer,
     updateCustomer,
     deleteCustomer,
+    resolvePrice,
+    saveCustomerPrices,
     addOrder,
     updateOrderStatus,
     deleteOrder,

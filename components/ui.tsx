@@ -20,7 +20,7 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -41,7 +41,11 @@ export function Modal({
   return (
     <div className="modal-overlay" role="presentation" onMouseDown={onClose}>
       <div
-        className={cn("modal", size === "sm" && "modal-sm")}
+        className={cn(
+          "modal",
+          size === "sm" && "modal-sm",
+          size === "lg" && "modal-lg",
+        )}
         role="dialog"
         aria-modal="true"
         aria-label={title}

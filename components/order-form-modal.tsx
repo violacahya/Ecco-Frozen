@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Modal } from "./ui";
 import { useApp } from "@/lib/app-context";
-import { PRODUCT_OPTIONS } from "@/lib/types";
 
 const EMPTY = {
-  product: PRODUCT_OPTIONS[0],
+  product: "",
   quantity: "",
   notes: "",
 };
@@ -25,15 +24,24 @@ export function OrderFormModal({
   onClose: () => void;
   onSaved: (product: string) => void;
 }) {
-  const { addOrder } = useApp();
+  const { addOrder, products } = useApp();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
 
+  /**
+   * Pilihan produk ditarik langsung dari katalog Inventaris, sehingga produk
+   * baru yang ditambahkan admin langsung bisa dipesan mitra tanpa ubah kode.
+   */
+  const productOptions = useMemo(
+    () => products.map((product) => product.name),
+    [products],
+  );
+
   useEffect(() => {
     if (!open) return;
-    setForm(EMPTY);
+    setForm({ ...EMPTY, product: productOptions[0] ?? "" });
     setErrors({});
-  }, [open]);
+  }, [open, productOptions]);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -72,7 +80,12 @@ export function OrderFormModal({
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Batal
           </button>
-          <button type="submit" form="order-form" className="btn btn-primary">
+          <button
+            type="submit"
+            form="order-form"
+            className="btn btn-primary"
+            disabled={productOptions.length === 0}
+          >
             Kirim Pesanan
           </button>
         </>
@@ -86,14 +99,29 @@ export function OrderFormModal({
             value={form.product}
             onChange={(event) => setField("product", event.target.value)}
             className={errors.product ? "input-error" : ""}
+            disabled={productOptions.length === 0}
           >
-            {PRODUCT_OPTIONS.map((product) => (
-              <option key={product} value={product}>
-                {product}
-              </option>
-            ))}
+            {productOptions.length === 0 ? (
+              <option value="">Belum ada produk di katalog</option>
+            ) : (
+              productOptions.map((product) => (
+                <option key={product} value={product}>
+                  {product}
+                </option>
+              ))
+            )}
           </select>
-          {errors.product && <span className="field-error">{errors.product}</span>}
+          {errors.product ? (
+            <span className="field-error">{errors.product}</span>
+          ) : productOptions.length === 0 ? (
+            <span className="field-hint">
+              Tambahkan produk lebih dulu di menu Inventaris &amp; Stok.
+            </span>
+          ) : (
+            <span className="field-hint">
+              Pilihan produk mengikuti katalog Inventaris &amp; Stok.
+            </span>
+          )}
         </div>
 
         <div className="field">

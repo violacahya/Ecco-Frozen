@@ -225,6 +225,16 @@ a {
   color: var(--red);
 }
 
+.icon-button-accent {
+  color: var(--pink-ink);
+}
+
+.icon-button-accent:hover:not(:disabled) {
+  background: var(--pink-soft);
+  border-color: var(--pink);
+  color: var(--pink-ink);
+}
+
 .icon-button-dark {
   color: #c3b5d5;
 }
@@ -1485,6 +1495,10 @@ a {
 
 .modal-sm {
   max-width: 440px;
+}
+
+.modal-lg {
+  max-width: 880px;
 }
 
 .modal-head {
@@ -4494,4 +4508,254 @@ a {
   font-size: 11.5px;
   font-weight: 500;
   fill: #a294b6;
+}
+
+/* ---------- Harga khusus pelanggan ---------- */
+.price-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.price-editor-note {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.price-editor-note-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.price-editor-note p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+.price-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.price-editor-toolbar .search-box {
+  flex: 1;
+  min-width: 190px;
+}
+
+.price-editor-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.price-editor-filter input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.price-editor-table {
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.price-editor-table .data-table {
+  min-width: 560px;
+}
+
+.price-editor-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-soft);
+}
+
+.price-input {
+  width: 118px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  text-align: right;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.price-input::placeholder {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.price-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
+.price-input-active {
+  border-color: var(--pink);
+  background: var(--pink-soft);
+  font-weight: 600;
+}
+
+.price-input-warn {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+
+.price-input-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--orange);
+  text-align: right;
+}
+
+.price-editor-empty {
+  margin: 0;
+  padding: 26px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.price-editor-foot {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 760px) {
+  .price-editor-toolbar {
+    align-items: stretch;
+  }
+
+  .price-editor-filter {
+    order: 3;
+  }
+
+  .price-editor-table .data-table {
+    min-width: 0;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .price-editor-table th,
+  .price-editor-table td {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  .price-editor-table th:nth-child(2),
+  .price-editor-table td:nth-child(2) {
+    display: none;
+  }
+
+  .price-editor-table th:nth-child(1),
+  .price-editor-table td:nth-child(1) {
+    width: 46%;
+  }
+
+  .price-editor-table .inv-product-cell strong {
+    font-size: 12.5px;
+  }
+
+  .price-editor-table .inv-product-cell small {
+    font-size: 10.5px;
+  }
+
+  .price-editor-table .cell-right.cell-muted {
+    font-size: 11px;
+  }
+
+  .price-input {
+    width: 100%;
+    max-width: 96px;
+    padding: 6px 7px;
+    font-size: 12px;
+  }
+}
+
+/* ---------- Halaman 404 ---------- */
+.not-found {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.not-found-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 34px 30px 30px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.not-found-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: var(--primary);
+  color: var(--accent);
+}
+
+.not-found-code {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+
+.not-found-title {
+  margin: 6px 0 8px;
+  font-size: 21px;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.not-found-text {
+  margin: 0 auto 22px;
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.not-found-actions {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  flex-wrap: wrap;
 }

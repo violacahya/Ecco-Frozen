@@ -21,14 +21,6 @@ export function formatDate(iso: string): string {
   });
 }
 
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 export function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / 86_400_000);
@@ -67,6 +59,18 @@ export function avatarColor(seed: string): string {
 
 export function uid(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/**
+ * Kunci tanggal `YYYY-MM-DD` berdasarkan waktu LOKAL perangkat, bukan UTC.
+ * Dipakai untuk nomor nota dan pengelompokan penjualan harian agar transaksi
+ * pukul 00.00–06.59 WIB tidak jatuh ke tanggal hari sebelumnya.
+ */
+export function localDayKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 /**
